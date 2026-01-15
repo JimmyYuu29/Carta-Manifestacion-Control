@@ -6,13 +6,18 @@ This service wraps the existing DocxRenderer to:
 1. Generate Word documents from review data
 2. Store output in secure, non-public directory
 3. Return file paths for authorized download only
+
+B1 MODE: Supports [[BLOCK:key]]...[[/BLOCK]] anchor blocks by:
+1. Pre-computing __block_*__ variables with base + custom content
+2. Injecting these variables into the data before rendering
 """
 
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any
 from datetime import datetime
 import uuid
 import sys
+import json
 
 # Add parent modules to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -20,6 +25,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from modules.plugin_loader import load_plugin
 from modules.renderer_docx import DocxRenderer
 from modules.generate import preprocess_input
+from .block_parser import (
+    BlockParser, BlockDefinition, BlockSchemaLoader,
+    AppendMode, HtmlSanitizer
+)
 
 
 class DocxRenderService:
@@ -28,14 +37,85 @@ class DocxRenderService:
     Servicio de renderizado DOCX que genera documentos en ubicacion segura
 
     SECURITY: Output directory is NOT in static/public path
+
+    B1 MODE: Handles [[BLOCK:key]]...[[/BLOCK]] by pre-computing
+    __block_*__ variables that combine base content + custom content
     """
 
-    def __init__(self, output_dir: Path = None):
+    def __init__(self, output_dir: Path = None, schemas_dir: Path = None):
         if output_dir is None:
             # SECURITY: Store in non-public directory
             output_dir = Path(__file__).parent.parent.parent / "storage" / "generated"
+        if schemas_dir is None:
+            schemas_dir = Path(__file__).parent.parent.parent / "schemas"
+
         self.output_dir = Path(output_dir)
+        self.schemas_dir = Path(schemas_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.block_parser = BlockParser()
+
+    def load_blocks_config(self, doc_type: str) -> Dict[str, dict]:
+        """Load blocks configuration from schema"""
+        schema_file = self.schemas_dir / f"{doc_type}.json"
+        if not schema_file.exists():
+            return {}
+
+        with open(schema_file, 'r', encoding='utf-8') as f:
+            schema = json.load(f)
+
+        return schema.get("blocks", {})
+
+    def compute_block_variables(self, doc_type: str, data_json: dict) -> Dict[str, str]:
+        """
+        B1 MODE: Compute __block_*__ variables for Word rendering
+
+        For each block defined in schema:
+        1. Render base content with data variables
+        2. Get custom field value from data
+        3. Combine according to append_mode
+        4. Return as __block_{key}__ variable
+
+        Args:
+            doc_type: Document type
+            data_json: Full data including custom fields
+
+        Returns:
+            Dictionary of __block_key__: final_content
+        """
+        blocks_config = self.load_blocks_config(doc_type)
+        block_vars = {}
+
+        for block_key, config in blocks_config.items():
+            # Get block configuration
+            custom_field = config.get("custom_field", f"{block_key}_custom")
+            append_mode = AppendMode(config.get("append_mode", "newline"))
+            label = config.get("label", "")
+            inner_template = config.get("inner_template", "")
+            custom_type = config.get("custom_type", "text")
+
+            # Render base content with variables
+            base_rendered = self.block_parser.render_block_inner(inner_template, data_json)
+
+            # Get custom content
+            custom_content = data_json.get(custom_field, "") or ""
+
+            # For richtext, convert to Word-compatible format
+            if custom_type == "richtext_limited" and custom_content:
+                custom_content = HtmlSanitizer.convert_to_word_format(custom_content)
+
+            # Combine base + custom according to append_mode
+            final_content = self.block_parser.combine_content(
+                base_rendered,
+                custom_content,
+                append_mode,
+                label
+            )
+
+            # Store as __block_key__ variable
+            var_name = f"__block_{block_key}__"
+            block_vars[var_name] = final_content
+
+        return block_vars
 
     def render(self, doc_type: str, data_json: dict, review_id: str) -> Tuple[Path, str]:
         """
@@ -50,12 +130,23 @@ class DocxRenderService:
             Tuple of (output_path, filename)
 
         SECURITY: Returns path in secure directory, not accessible via HTTP
+
+        B1 MODE: Injects __block_*__ variables before rendering
         """
         # Load plugin
         plugin = load_plugin(doc_type)
 
+        # B1 MODE: Compute block variables
+        block_vars = self.compute_block_variables(doc_type, data_json)
+
+        # Merge block variables into data
+        data_with_blocks = {**data_json, **block_vars}
+
         # Preprocess data (type conversions)
-        processed_data = preprocess_input(data_json, plugin)
+        processed_data = preprocess_input(data_with_blocks, plugin)
+
+        # Ensure block vars are preserved after preprocessing
+        processed_data.update(block_vars)
 
         # Create renderer
         renderer = DocxRenderer(plugin)

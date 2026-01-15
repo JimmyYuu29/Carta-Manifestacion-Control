@@ -330,6 +330,45 @@
     {"id": "organo_administracion", "title": "Organo de Administracion", "order": 5},
     {"id": "opciones_condicionales", "title": "Opciones Condicionales", "order": 6},
     {"id": "alta_direccion", "title": "Alta Direccion", "order": 7},
-    {"id": "firma", "title": "Firma", "order": 8}
-  ]
+    {"id": "firma", "title": "Firma", "order": 8},
+    {"id": "blocks", "title": "Bloques de Contenido", "order": 9}
+  ],
+  "blocks": {
+    "scope_base": {
+      "custom_field": "scope_base_custom",
+      "append_mode": "newline",
+      "label": "",
+      "custom_type": "text",
+      "max_length": 2000,
+      "required": false,
+      "description": "Alcance del trabajo de auditoria"
+    },
+    "responsabilidades": {
+      "custom_field": "responsabilidades_custom",
+      "append_mode": "labelled",
+      "label": "Nota adicional:",
+      "custom_type": "text",
+      "max_length": 1500,
+      "required": false,
+      "description": "Responsabilidades de la direccion"
+    },
+    "manifestaciones_generales": {
+      "custom_field": "manifestaciones_generales_custom",
+      "append_mode": "newline",
+      "label": "",
+      "custom_type": "richtext_limited",
+      "max_length": 3000,
+      "required": false,
+      "description": "Manifestaciones generales de la carta"
+    },
+    "hechos_posteriores": {
+      "custom_field": "hechos_posteriores_custom",
+      "append_mode": "inline",
+      "label": "",
+      "custom_type": "text",
+      "max_length": 1000,
+      "required": false,
+      "description": "Hechos posteriores al cierre"
+    }
+  }
 }

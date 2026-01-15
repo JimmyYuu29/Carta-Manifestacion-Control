@@ -280,6 +280,88 @@
         .frozen-banner svg {
             flex-shrink: 0;
         }
+
+        /* B1 MODE: Block components */
+        .doc-block {
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .doc-block-header {
+            padding: 10px 15px;
+            background: #f9fafb;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .block-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        .doc-block-base {
+            padding: 15px;
+            background: white;
+        }
+        .base-content {
+            color: #4b5563;
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+        .doc-block-custom {
+            padding: 15px;
+            background: var(--bg-editable);
+            border-top: 1px dashed #fbbf24;
+        }
+        .doc-block-custom label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #92400e;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .doc-block-custom textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px 12px;
+            border: 1px solid #fbbf24;
+            border-radius: 6px;
+            font-size: 0.9375rem;
+            font-family: inherit;
+            resize: vertical;
+            background: white;
+        }
+        .doc-block-custom textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .doc-block-custom textarea[readonly] {
+            background: #f9fafb;
+            cursor: not-allowed;
+        }
+        .doc-block-custom .char-count {
+            display: block;
+            text-align: right;
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        .doc-block-custom .richtext-editor {
+            min-height: 80px;
+            padding: 10px 12px;
+            border: 1px solid #fbbf24;
+            border-radius: 6px;
+            background: white;
+        }
+        .doc-block-custom .richtext-editor:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        .doc-block-custom .richtext-editor[contenteditable="false"] {
+            background: #f9fafb;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -417,6 +499,40 @@
                     </div>
                 </div>
             </div>
+
+            <!-- B1 MODE: Block Sections with Custom Fields -->
+            {% if blocks and blocks|length > 0 %}
+            <div class="section">
+                <h2 class="section-title">Bloques de Contenido</h2>
+                {% for block in blocks %}
+                <section class="doc-block" data-block="{{ block.key }}">
+                    <div class="doc-block-header">
+                        <span class="block-label">{{ block.description or block.key }}</span>
+                    </div>
+                    <div class="doc-block-base">
+                        <div class="base-content">{{ block.base_html if block.base_html else '(Contenido del sistema)' }}</div>
+                    </div>
+                    <div class="doc-block-custom">
+                        <label for="{{ block.custom_field }}">Complemento (opcional)</label>
+                        {% if block.custom_type == 'richtext_limited' %}
+                        <div class="richtext-editor"
+                             data-field="{{ block.custom_field }}"
+                             data-max-length="{{ block.max_length }}"
+                             contenteditable="{{ 'true' if can_edit else 'false' }}">{{ block.custom_value }}</div>
+                        {% else %}
+                        <textarea
+                            name="{{ block.custom_field }}"
+                            data-field="{{ block.custom_field }}"
+                            maxlength="{{ block.max_length }}"
+                            placeholder="Agregar comentario adicional..."
+                            {% if not can_edit %}readonly{% endif %}>{{ block.custom_value }}</textarea>
+                        {% endif %}
+                        <span class="char-count">{{ (block.custom_value|length) if block.custom_value else 0 }} / {{ block.max_length }}</span>
+                    </div>
+                </section>
+                {% endfor %}
+            </div>
+            {% endif %}
 
             {% if status == 'SUBMITTED' %}
             <div class="manager-link-section">
@@ -637,6 +753,52 @@
             // Enter to save in modal
             modalInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') saveFieldFromModal();
+            });
+
+            // B1 MODE: Block custom field handlers
+            document.querySelectorAll('.doc-block-custom textarea').forEach(textarea => {
+                const field = textarea.dataset.field;
+                const maxLength = parseInt(textarea.getAttribute('maxlength') || '2000');
+                const charCount = textarea.parentElement.querySelector('.char-count');
+
+                // Update char count on input
+                textarea.addEventListener('input', () => {
+                    const len = textarea.value.length;
+                    if (charCount) {
+                        charCount.textContent = `${len} / ${maxLength}`;
+                    }
+                    // Track change
+                    pendingChanges[field] = textarea.value;
+                    updateSaveButton();
+                });
+
+                // Initialize char count
+                if (charCount) {
+                    charCount.textContent = `${textarea.value.length} / ${maxLength}`;
+                }
+            });
+
+            // B1 MODE: Richtext editor handlers
+            document.querySelectorAll('.doc-block-custom .richtext-editor').forEach(editor => {
+                const field = editor.dataset.field;
+                const maxLength = parseInt(editor.dataset.maxLength || '3000');
+                const charCount = editor.parentElement.querySelector('.char-count');
+
+                // Update on input
+                editor.addEventListener('input', () => {
+                    const len = editor.innerText.length;
+                    if (charCount) {
+                        charCount.textContent = `${len} / ${maxLength}`;
+                    }
+                    // Track change (get innerHTML for richtext)
+                    pendingChanges[field] = editor.innerHTML;
+                    updateSaveButton();
+                });
+
+                // Initialize char count
+                if (charCount) {
+                    charCount.textContent = `${editor.innerText.length} / ${maxLength}`;
+                }
             });
         }
     </script>
