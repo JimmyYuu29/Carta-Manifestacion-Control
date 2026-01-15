@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview - {{ data.get('Nombre_Cliente', 'Documento') }}</title>
+    <link rel="stylesheet" href="/static/preview.css">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --success-color: #16a34a;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --border-color: #e5e7eb;
+            --bg-editable: #fef9c3;
+            --bg-readonly: #f9fafb;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            background: #f3f4f6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .header {
+            padding: 20px 30px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 1.5rem;
+            color: #111827;
+        }
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .status-DRAFT { background: #dbeafe; color: #1d4ed8; }
+        .status-SUBMITTED { background: #dcfce7; color: #166534; }
+        .status-DOWNLOADED { background: #f3f4f6; color: #4b5563; }
+
+        .toolbar {
+            padding: 15px 30px;
+            background: #f9fafb;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+        .btn-success:hover { background: #15803d; }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .content {
+            padding: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .field-group {
+            margin-bottom: 15px;
+        }
+        .field-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+        .field-value {
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 0.9375rem;
+        }
+        .field-readonly {
+            background: var(--bg-readonly);
+            border: 1px solid var(--border-color);
+            color: #4b5563;
+        }
+        .field-editable {
+            background: var(--bg-editable);
+            border: 2px solid #fbbf24;
+            cursor: pointer;
+            position: relative;
+        }
+        .field-editable:hover {
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
+        }
+        .field-editable::after {
+            content: 'Click to edit';
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.75rem;
+            color: #92400e;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .field-editable:hover::after { opacity: 1; }
+
+        .document-preview {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 40px;
+            font-family: 'Times New Roman', Times, serif;
+            line-height: 1.8;
+        }
+        .document-preview h2 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .document-preview p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        /* Edit modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: auto;
+        }
+        .modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 { font-size: 1.125rem; }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        .modal-body { padding: 20px; }
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        textarea.form-input {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+        }
+        .toast {
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 0.875rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+        }
+        .toast-success { background: #dcfce7; color: #166534; border-left: 4px solid var(--success-color); }
+        .toast-error { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--danger-color); }
+        .toast-warning { background: #fef3c7; color: #92400e; border-left: 4px solid var(--warning-color); }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Manager link section */
+        .manager-link-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            border-radius: 8px;
+        }
+        .manager-link-section h3 {
+            color: #166534;
+            margin-bottom: 10px;
+        }
+        .manager-link {
+            display: block;
+            padding: 10px;
+            background: white;
+            border: 1px solid #a7f3d0;
+            border-radius: 4px;
+            word-break: break-all;
+            font-family: monospace;
+        }
+
+        /* Frozen state */
+        .frozen-banner {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .frozen-banner svg {
+            flex-shrink: 0;
+        }
+
+        /* B1 MODE: Block components */
+        .doc-block {
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .doc-block-header {
+            padding: 10px 15px;
+            background: #f9fafb;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .block-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        .doc-block-base {
+            padding: 15px;
+            background: white;
+        }
+        .base-content {
+            color: #4b5563;
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+        .doc-block-custom {
+            padding: 15px;
+            background: var(--bg-editable);
+            border-top: 1px dashed #fbbf24;
+        }
+        .doc-block-custom label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #92400e;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .doc-block-custom textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px 12px;
+            border: 1px solid #fbbf24;
+            border-radius: 6px;
+            font-size: 0.9375rem;
+            font-family: inherit;
+            resize: vertical;
+            background: white;
+        }
+        .doc-block-custom textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .doc-block-custom textarea[readonly] {
+            background: #f9fafb;
+            cursor: not-allowed;
+        }
+        .doc-block-custom .char-count {
+            display: block;
+            text-align: right;
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        .doc-block-custom .richtext-editor {
+            min-height: 80px;
+            padding: 10px 12px;
+            border: 1px solid #fbbf24;
+            border-radius: 6px;
+            background: white;
+        }
+        .doc-block-custom .richtext-editor:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        .doc-block-custom .richtext-editor[contenteditable="false"] {
+            background: #f9fafb;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Carta de Manifestacion</h1>
+            <span class="status-badge status-{{ status }}">{{ status }}</span>
+        </div>
+
+        {% if not can_edit %}
+        <div class="toolbar">
+            <div class="frozen-banner">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+                <span>Este documento esta congelado y no puede ser editado.</span>
+            </div>
+        </div>
+        {% else %}
+        <div class="toolbar">
+            <button class="btn btn-primary" id="btn-save" disabled>Guardar cambios</button>
+            <button class="btn btn-success" id="btn-submit">Enviar para aprobacion</button>
+        </div>
+        {% endif %}
+
+        <div class="content">
+            <!-- Cliente Section -->
+            <div class="section">
+                <h2 class="section-title">Informacion del Cliente</h2>
+                <div class="field-group">
+                    <div class="field-label">Nombre del Cliente</div>
+                    <div class="field-value {% if 'Nombre_Cliente' in editable_fields and can_edit %}field-editable{% else %}field-readonly{% endif %}"
+                         {% if 'Nombre_Cliente' in editable_fields and can_edit %}data-field="Nombre_Cliente" data-type="string"{% endif %}>
+                        {{ data.get('Nombre_Cliente', '') or '-' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fechas Section -->
+            <div class="section">
+                <h2 class="section-title">Fechas</h2>
+                <div class="field-group">
+                    <div class="field-label">Fecha de Hoy</div>
+                    <div class="field-value field-readonly">
+                        {{ data.get('Fecha_de_hoy', '')|date_es or '-' }}
+                    </div>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">Fecha del Encargo</div>
+                    <div class="field-value {% if 'Fecha_encargo' in editable_fields and can_edit %}field-editable{% else %}field-readonly{% endif %}"
+                         {% if 'Fecha_encargo' in editable_fields and can_edit %}data-field="Fecha_encargo" data-type="date"{% endif %}>
+                        {{ data.get('Fecha_encargo', '')|date_es or '-' }}
+                    </div>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">Fecha Fin del Ejercicio</div>
+                    <div class="field-value {% if 'FF_Ejecicio' in editable_fields and can_edit %}field-editable{% else %}field-readonly{% endif %}"
+                         {% if 'FF_Ejecicio' in editable_fields and can_edit %}data-field="FF_Ejecicio" data-type="date"{% endif %}>
+                        {{ data.get('FF_Ejecicio', '')|date_es or '-' }}
+                    </div>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">Fecha de Cierre</div>
+                    <div class="field-value {% if 'Fecha_cierre' in editable_fields and can_edit %}field-editable{% else %}field-readonly{% endif %}"
+                         {% if 'Fecha_cierre' in editable_fields and can_edit %}data-field="Fecha_cierre" data-type="date"{% endif %}>
+                        {{ data.get('Fecha_cierre', '')|date_es or '-' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Oficina Section -->
+            <div class="section">
+                <h2 class="section-title">Informacion de la Oficina</h2>
+                <div class="field-group">
+                    <div class="field-label">Oficina</div>
+                    <div class="field-value field-readonly">
+                        {{ data.get('Oficina_Seleccionada', '') or '-' }}
+                    </div>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">Direccion</div>
+                    <div class="field-value field-readonly">
+                        {{ data.get('Direccion_Oficina', '') or '-' }}
+                    </div>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">Ciudad / CP</div>
+                    <div class="field-value field-readonly">
+                        {{ data.get('Ciudad_Oficina', '') or '-' }} / {{ data.get('CP', '') or '-' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informacion General -->
+            <div class="section">
+                <h2 class="section-title">Informacion General</h2>
+                <div class="field-group">
+                    <div class="field-label">Lista de Abogados y Asesores</div>
+                    <div class="field-value {% if 'Lista_Abogados' in editable_fields and can_edit %}field-editable{% else %}field-readonly{% endif %}"
+                         {% if 'Lista_Abogados' in editable_fields and can_edit %}data-field="Lista_Abogados" data-type="string" data-multiline="true"{% endif %}>
+                        {{ data.get('Lista_Abogados', '') or '-' }}
+                    </div>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">Anexo Partes Vinculadas</div>
+                    <div class="field-value {% if 'anexo_partes' in editable_fields and can_edit %}field-editable{% else %}field-readonly{% endif %}"
+                         {% if 'anexo_partes' in editable_fields and can_edit %}data-field="anexo_partes" data-type="string"{% endif %}>
+                        {{ data.get('anexo_partes', '') or '-' }}
+                    </div>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">Anexo Proyecciones</div>
+                    <div class="field-value {% if 'anexo_proyecciones' in editable_fields and can_edit %}field-editable{% else %}field-readonly{% endif %}"
+                         {% if 'anexo_proyecciones' in editable_fields and can_edit %}data-field="anexo_proyecciones" data-type="string"{% endif %}>
+                        {{ data.get('anexo_proyecciones', '') or '-' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Firma Section -->
+            <div class="section">
+                <h2 class="section-title">Firma</h2>
+                <div class="field-group">
+                    <div class="field-label">Nombre del Firmante</div>
+                    <div class="field-value {% if 'Nombre_Firma' in editable_fields and can_edit %}field-editable{% else %}field-readonly{% endif %}"
+                         {% if 'Nombre_Firma' in editable_fields and can_edit %}data-field="Nombre_Firma" data-type="string"{% endif %}>
+                        {{ data.get('Nombre_Firma', '') or '-' }}
+                    </div>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">Cargo del Firmante</div>
+                    <div class="field-value {% if 'Cargo_Firma' in editable_fields and can_edit %}field-editable{% else %}field-readonly{% endif %}"
+                         {% if 'Cargo_Firma' in editable_fields and can_edit %}data-field="Cargo_Firma" data-type="string"{% endif %}>
+                        {{ data.get('Cargo_Firma', '') or '-' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- B1 MODE: Block Sections with Custom Fields -->
+            {% if blocks and blocks|length > 0 %}
+            <div class="section">
+                <h2 class="section-title">Bloques de Contenido</h2>
+                {% for block in blocks %}
+                <section class="doc-block" data-block="{{ block.key }}">
+                    <div class="doc-block-header">
+                        <span class="block-label">{{ block.description or block.key }}</span>
+                    </div>
+                    <div class="doc-block-base">
+                        <div class="base-content">{{ block.base_html if block.base_html else '(Contenido del sistema)' }}</div>
+                    </div>
+                    <div class="doc-block-custom">
+                        <label for="{{ block.custom_field }}">Complemento (opcional)</label>
+                        {% if block.custom_type == 'richtext_limited' %}
+                        <div class="richtext-editor"
+                             data-field="{{ block.custom_field }}"
+                             data-max-length="{{ block.max_length }}"
+                             contenteditable="{{ 'true' if can_edit else 'false' }}">{{ block.custom_value }}</div>
+                        {% else %}
+                        <textarea
+                            name="{{ block.custom_field }}"
+                            data-field="{{ block.custom_field }}"
+                            maxlength="{{ block.max_length }}"
+                            placeholder="Agregar comentario adicional..."
+                            {% if not can_edit %}readonly{% endif %}>{{ block.custom_value }}</textarea>
+                        {% endif %}
+                        <span class="char-count">{{ (block.custom_value|length) if block.custom_value else 0 }} / {{ block.max_length }}</span>
+                    </div>
+                </section>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if status == 'SUBMITTED' %}
+            <div class="manager-link-section">
+                <h3>Documento Enviado</h3>
+                <p>El documento ha sido enviado para aprobacion. Comparta el siguiente enlace con el manager:</p>
+                <a class="manager-link" href="/manager/reviews/{{ review_id }}" target="_blank">
+                    {{ request.url_root if request else '' }}/manager/reviews/{{ review_id }}
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-title">Editar campo</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-input" id="modal-input">
+                <textarea class="form-input" id="modal-textarea" style="display:none;"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="modal-cancel">Cancelar</button>
+                <button class="btn btn-primary" id="modal-save">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // Configuration
+        const REVIEW_ID = '{{ review_id }}';
+        const CAN_EDIT = {{ 'true' if can_edit else 'false' }};
+        const EDITABLE_FIELDS = {{ editable_fields|tojson }};
+
+        // State
+        let pendingChanges = {};
+        let currentEditField = null;
+
+        // DOM Elements
+        const btnSave = document.getElementById('btn-save');
+        const btnSubmit = document.getElementById('btn-submit');
+        const modal = document.getElementById('edit-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalInput = document.getElementById('modal-input');
+        const modalTextarea = document.getElementById('modal-textarea');
+        const modalSave = document.getElementById('modal-save');
+        const modalCancel = document.getElementById('modal-cancel');
+        const modalClose = document.getElementById('modal-close');
+
+        // Toast helper
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        // Update save button state
+        function updateSaveButton() {
+            if (btnSave) {
+                btnSave.disabled = Object.keys(pendingChanges).length === 0;
+            }
+        }
+
+        // Open edit modal
+        function openEditModal(fieldElement) {
+            if (!CAN_EDIT) return;
+
+            const field = fieldElement.dataset.field;
+            const type = fieldElement.dataset.type;
+            const multiline = fieldElement.dataset.multiline === 'true';
+            const currentValue = pendingChanges[field] !== undefined
+                ? pendingChanges[field]
+                : fieldElement.textContent.trim();
+
+            currentEditField = { element: fieldElement, field, type };
+            modalTitle.textContent = `Editar: ${field.replace(/_/g, ' ')}`;
+
+            if (multiline) {
+                modalInput.style.display = 'none';
+                modalTextarea.style.display = 'block';
+                modalTextarea.value = currentValue === '-' ? '' : currentValue;
+            } else if (type === 'date') {
+                modalInput.style.display = 'block';
+                modalTextarea.style.display = 'none';
+                modalInput.type = 'date';
+                // Try to parse Spanish date format
+                modalInput.value = currentValue === '-' ? '' : currentValue;
+            } else {
+                modalInput.style.display = 'block';
+                modalTextarea.style.display = 'none';
+                modalInput.type = 'text';
+                modalInput.value = currentValue === '-' ? '' : currentValue;
+            }
+
+            modal.classList.add('active');
+        }
+
+        // Close edit modal
+        function closeEditModal() {
+            modal.classList.remove('active');
+            currentEditField = null;
+        }
+
+        // Save field from modal
+        function saveFieldFromModal() {
+            if (!currentEditField) return;
+
+            const { element, field, type } = currentEditField;
+            const multiline = element.dataset.multiline === 'true';
+            const newValue = multiline ? modalTextarea.value : modalInput.value;
+
+            // Update UI
+            element.textContent = newValue || '-';
+
+            // Track change
+            pendingChanges[field] = newValue;
+            updateSaveButton();
+
+            closeEditModal();
+            showToast(`Campo "${field.replace(/_/g, ' ')}" actualizado`, 'success');
+        }
+
+        // Save all pending changes
+        async function saveChanges() {
+            if (Object.keys(pendingChanges).length === 0) return;
+
+            try {
+                const response = await fetch(`/reviews/${REVIEW_ID}/data`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: pendingChanges })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    pendingChanges = {};
+                    updateSaveButton();
+                    showToast('Cambios guardados correctamente', 'success');
+
+                    if (result.rejected_fields && result.rejected_fields.length > 0) {
+                        showToast(`Campos rechazados: ${result.rejected_fields.join(', ')}`, 'warning');
+                    }
+                } else {
+                    showToast(result.errors?.[0]?.message || 'Error al guardar', 'error');
+                }
+            } catch (error) {
+                showToast('Error de conexion', 'error');
+            }
+        }
+
+        // Submit review
+        async function submitReview() {
+            if (!confirm('Una vez enviado, el documento no podra ser editado. Continuar?')) {
+                return;
+            }
+
+            // Save pending changes first
+            if (Object.keys(pendingChanges).length > 0) {
+                await saveChanges();
+            }
+
+            try {
+                const response = await fetch(`/reviews/${REVIEW_ID}/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showToast('Documento enviado correctamente', 'success');
+                    // Reload page to show frozen state
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(result.detail || 'Error al enviar', 'error');
+                }
+            } catch (error) {
+                showToast('Error de conexion', 'error');
+            }
+        }
+
+        // Event listeners
+        if (CAN_EDIT) {
+            // Editable fields click
+            document.querySelectorAll('.field-editable').forEach(el => {
+                el.addEventListener('click', () => openEditModal(el));
+            });
+
+            // Modal controls
+            if (modalSave) modalSave.addEventListener('click', saveFieldFromModal);
+            if (modalCancel) modalCancel.addEventListener('click', closeEditModal);
+            if (modalClose) modalClose.addEventListener('click', closeEditModal);
+
+            // Save and Submit buttons
+            if (btnSave) btnSave.addEventListener('click', saveChanges);
+            if (btnSubmit) btnSubmit.addEventListener('click', submitReview);
+
+            // Close modal on backdrop click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeEditModal();
+            });
+
+            // Close modal on Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeEditModal();
+            });
+
+            // Enter to save in modal
+            modalInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') saveFieldFromModal();
+            });
+
+            // B1 MODE: Block custom field handlers
+            document.querySelectorAll('.doc-block-custom textarea').forEach(textarea => {
+                const field = textarea.dataset.field;
+                const maxLength = parseInt(textarea.getAttribute('maxlength') || '2000');
+                const charCount = textarea.parentElement.querySelector('.char-count');
+
+                // Update char count on input
+                textarea.addEventListener('input', () => {
+                    const len = textarea.value.length;
+                    if (charCount) {
+                        charCount.textContent = `${len} / ${maxLength}`;
+                    }
+                    // Track change
+                    pendingChanges[field] = textarea.value;
+                    updateSaveButton();
+                });
+
+                // Initialize char count
+                if (charCount) {
+                    charCount.textContent = `${textarea.value.length} / ${maxLength}`;
+                }
+            });
+
+            // B1 MODE: Richtext editor handlers
+            document.querySelectorAll('.doc-block-custom .richtext-editor').forEach(editor => {
+                const field = editor.dataset.field;
+                const maxLength = parseInt(editor.dataset.maxLength || '3000');
+                const charCount = editor.parentElement.querySelector('.char-count');
+
+                // Update on input
+                editor.addEventListener('input', () => {
+                    const len = editor.innerText.length;
+                    if (charCount) {
+                        charCount.textContent = `${len} / ${maxLength}`;
+                    }
+                    // Track change (get innerHTML for richtext)
+                    pendingChanges[field] = editor.innerHTML;
+                    updateSaveButton();
+                });
+
+                // Initialize char count
+                if (charCount) {
+                    charCount.textContent = `${editor.innerText.length} / ${maxLength}`;
+                }
+            });
+        }
+    </script>
+</body>
+</html>

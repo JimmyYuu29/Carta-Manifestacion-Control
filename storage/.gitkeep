@@ -1,0 +1,3 @@
+# Storage directories for review system
+# reviews/ - Review data and audit logs
+# generated/ - Generated Word documents (manager download only)

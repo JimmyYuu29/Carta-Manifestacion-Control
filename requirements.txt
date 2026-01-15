@@ -10,5 +10,11 @@ PyYAML>=6.0
 pandas>=2.0.0
 openpyxl>=3.1.0
 
-# Optional: Pydantic for data validation
+# Pydantic for data validation
 pydantic>=2.0.0
+
+# FastAPI - Controlled Review API
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+jinja2>=3.1.0
+python-multipart>=0.0.6
