@@ -403,11 +403,10 @@ class HtmlRenderer:
             lstrip_blocks=True
         )
 
-        # Register same filters
+        # Register same filters (Jinja2 built-in 'default' filter is used)
         config_env.filters['date_es'] = self._format_date_spanish
         config_env.filters['currency_eur'] = self._format_currency_eur
         config_env.filters['bool_sn'] = self._format_bool_sn
-        config_env.filters['default'] = lambda value, default_value='': value if value else default_value
 
         try:
             # Render the document template
