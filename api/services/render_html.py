@@ -297,6 +297,61 @@ class HtmlRenderer:
             client_name=client_name
         )
 
+    def _process_block_markers(self, html_content: str, data_json: Dict[str, Any],
+                                can_edit: bool) -> str:
+        """
+        Process [[BLOCK:key]]...[[/BLOCK]] markers in HTML content
+        Replace them with editable HTML elements
+
+        Args:
+            html_content: HTML string with block markers
+            data_json: Data containing block custom values
+            can_edit: Whether editing is allowed
+
+        Returns:
+            HTML with blocks replaced by editable elements
+        """
+        import re
+
+        def replace_block(match):
+            block_key = match.group(1)
+            block_content = match.group(2)
+            custom_field = f"{block_key}_custom"
+            custom_value = data_json.get(custom_field, "")
+
+            # Escape for HTML attributes
+            custom_value_escaped = html_module.escape(custom_value) if custom_value else ""
+
+            if can_edit:
+                # Editable block with textarea
+                return f'''
+                <section class="doc-block" data-block="{block_key}" data-block-key="{block_key}">
+                  <div class="doc-block-base">
+                    {block_content}
+                  </div>
+                  <div class="doc-block-custom">
+                    <label>Complemento (opcional - se anadira al documento final)</label>
+                    <textarea name="{custom_field}" data-field="{custom_field}" placeholder="Agregue texto adicional aqui...">{custom_value_escaped}</textarea>
+                    <div class="hint">Este contenido se anadira al parrafo anterior en el documento Word final.</div>
+                  </div>
+                </section>
+                '''
+            else:
+                # Read-only block display
+                custom_display = f'<div class="block-custom-content"><strong>Complemento:</strong> {custom_value_escaped}</div>' if custom_value else ''
+                return f'''
+                <section class="doc-block doc-block-readonly" data-block="{block_key}">
+                  <div class="doc-block-base">
+                    {block_content}
+                  </div>
+                  {custom_display}
+                </section>
+                '''
+
+        # Pattern to match [[BLOCK:key]]content[[/BLOCK]]
+        pattern = r'\[\[BLOCK:(\w+)\]\](.*?)\[\[/BLOCK\]\]'
+        return re.sub(pattern, replace_block, html_content, flags=re.DOTALL)
+
     def render_document_preview(self, doc_type: str, data_json: Dict[str, Any],
                                  review_id: str, status: str, can_edit: bool,
                                  editable_fields: list, mode: str = "employee",
@@ -358,14 +413,28 @@ class HtmlRenderer:
             # Render the document template
             doc_template = config_env.get_template(f"{doc_type}/template.html")
             document_html = doc_template.render(**full_context)
+
+            # Process [[BLOCK:key]]...[[/BLOCK]] markers if any remain
+            document_html = self._process_block_markers(document_html, data_json, can_edit)
         except Exception as e:
-            # If rendering fails, show error
-            document_html = f"<div class='error'>Error rendering template: {html_module.escape(str(e))}</div>"
+            # If rendering fails, show error with more details
+            import traceback
+            error_detail = traceback.format_exc()
+            document_html = f'''
+            <div class="error" style="background: #fee2e2; border: 1px solid #fca5a5; padding: 20px; border-radius: 8px; margin: 20px;">
+                <h3 style="color: #991b1b; margin-bottom: 10px;">Error rendering template</h3>
+                <p style="color: #b91c1c;">{html_module.escape(str(e))}</p>
+                <details style="margin-top: 10px;">
+                    <summary style="cursor: pointer; color: #6b7280;">Ver detalles tecnicos</summary>
+                    <pre style="background: #f9fafb; padding: 10px; margin-top: 10px; overflow: auto; font-size: 12px;">{html_module.escape(error_detail)}</pre>
+                </details>
+            </div>
+            '''
 
         # Load the wrapper template for the preview
         wrapper_template = self.env.get_template("_base/document_preview.html")
 
-        # B1 MODE: Render blocks
+        # B1 MODE: Render blocks for potential use in wrapper
         blocks = self.render_blocks(doc_type, data_json, can_edit)
 
         return wrapper_template.render(

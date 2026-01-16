@@ -295,3 +295,48 @@ async def get_status(review_id: str, request: Request):
         "submitted_at": review.submitted_at.isoformat() if review.submitted_at else None,
         "manager_link": review.get_manager_link(get_base_url(request)) if review.status != ReviewStatus.DRAFT else None
     }
+
+
+@router.get("/{review_id}/edit", response_class=HTMLResponse)
+async def get_edit_form(review_id: str, request: Request):
+    """
+    Get the edit form page for modifying review data fields
+    Obtener la pagina de formulario de edicion para modificar campos de datos
+
+    This page allows editing the form fields (variables) before previewing.
+    Only available for DRAFT status reviews.
+    """
+    review = storage.load(review_id)
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    # Check if editing is allowed
+    if not review.can_edit():
+        raise HTTPException(
+            status_code=403,
+            detail=f"Review is {review.status.value} and cannot be edited. Use preview page instead."
+        )
+
+    # Get schema information for form rendering
+    schema = validator.get_schema_for_ui(review.doc_type)
+    editable_fields = validator.get_editable_fields(review.doc_type)
+
+    # Load the edit form template
+    from jinja2 import Environment, FileSystemLoader
+    from pathlib import Path
+
+    templates_dir = Path(__file__).parent.parent.parent / "templates_html"
+    env = Environment(loader=FileSystemLoader(str(templates_dir)))
+    template = env.get_template("_base/edit_form.html")
+
+    # Render the edit form
+    html = template.render(
+        review_id=review.review_id,
+        status=review.status.value,
+        data=review.data_json,
+        fields=schema.get("fields", {}),
+        sections=schema.get("sections", []),
+        editable_fields=editable_fields
+    )
+
+    return HTMLResponse(content=html)

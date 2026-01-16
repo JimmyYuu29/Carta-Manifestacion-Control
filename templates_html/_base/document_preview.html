@@ -77,6 +77,7 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            text-decoration: none;
         }
         .btn svg {
             width: 18px;
@@ -97,6 +98,11 @@
             color: white;
         }
         .btn-warning:hover { background: #b45309; }
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        .btn-secondary:hover { background: #4b5563; }
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -136,6 +142,10 @@
         .info-banner.manager-mode {
             background: #ede9fe;
             border-color: #c4b5fd;
+        }
+        .info-banner.info {
+            background: #dbeafe;
+            border-color: #93c5fd;
         }
         .info-banner svg {
             flex-shrink: 0;
@@ -182,56 +192,61 @@
             border: none;
         }
 
-        /* Editable Fields Highlight */
-        .edit-fields-panel {
-            background: white;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
+        /* Block editing styles for document content */
+        .document-content .doc-block {
+            border: 2px dashed #fbbf24;
+            border-radius: 10px;
+            padding: 14px;
+            background: #fef9c3;
+            margin: 14px 0;
+            position: relative;
         }
-        .edit-fields-panel h3 {
-            font-size: 1rem;
-            color: #374151;
-            margin-bottom: 15px;
-        }
-        .field-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 15px;
-        }
-        .field-item {
-            padding: 12px;
-            background: var(--bg-editable);
-            border: 2px solid #fbbf24;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .field-item:hover {
-            border-color: #f59e0b;
-            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
-        }
-        .field-item.readonly {
-            background: var(--bg-readonly);
-            border-color: var(--border-color);
-            cursor: default;
-        }
-        .field-label {
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: #6b7280;
+        .document-content .doc-block::before {
+            content: 'BLOQUE EDITABLE';
+            position: absolute;
+            top: -10px;
+            left: 12px;
+            background: #fbbf24;
+            color: #78350f;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
             text-transform: uppercase;
-            margin-bottom: 4px;
+            letter-spacing: 0.5px;
         }
-        .field-value {
-            font-size: 0.9375rem;
-            color: #111827;
-            word-break: break-word;
+        .document-content .doc-block-base {
+            padding: 8px 10px;
+            background: #fff;
+            border: 1px dashed #d0d5dd;
+            border-radius: 8px;
+            margin-bottom: 10px;
         }
-        .field-value.empty {
-            color: #9ca3af;
-            font-style: italic;
+        .document-content .doc-block-custom textarea {
+            width: 100%;
+            min-height: 80px;
+            resize: vertical;
+            padding: 10px 12px;
+            border: 1px solid #d0d5dd;
+            border-radius: 8px;
+            font: inherit;
+            box-sizing: border-box;
+        }
+        .document-content .doc-block-custom textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .document-content .doc-block-custom label {
+            display: block;
+            font-size: 12px;
+            color: #475467;
+            margin-bottom: 6px;
+        }
+        .document-content .hint {
+            font-size: 12px;
+            color: #667085;
+            margin-top: 6px;
         }
 
         /* Manager Download Section */
@@ -305,7 +320,31 @@
             margin-top: 10px;
         }
 
-        /* Edit Modal */
+        /* Manager Link Display */
+        .manager-link-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+        }
+        .manager-link-box label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #0369a1;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .manager-link-box a {
+            display: block;
+            word-break: break-all;
+            color: #0284c7;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+
+        /* Confirmation Modal */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -350,22 +389,6 @@
             justify-content: flex-end;
             gap: 10px;
         }
-        .form-input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 1rem;
-        }
-        .form-input:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-        textarea.form-input {
-            min-height: 100px;
-            resize: vertical;
-        }
 
         /* Toast Notifications */
         .toast-container {
@@ -390,30 +413,6 @@
             to { transform: translateX(0); opacity: 1; }
         }
 
-        /* Manager Link Display */
-        .manager-link-box {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f0f9ff;
-            border: 1px solid #bae6fd;
-            border-radius: 8px;
-        }
-        .manager-link-box label {
-            display: block;
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: #0369a1;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-        }
-        .manager-link-box a {
-            display: block;
-            word-break: break-all;
-            color: #0284c7;
-            font-family: monospace;
-            font-size: 0.875rem;
-        }
-
         /* Loading */
         .loading-spinner {
             display: inline-block;
@@ -430,7 +429,7 @@
 
         /* Print styles */
         @media print {
-            .toolbar-container, .edit-fields-panel, .approval-section, .download-section, .info-banner { display: none; }
+            .toolbar-container, .approval-section, .download-section, .info-banner { display: none; }
             .document-container { max-width: 100%; margin: 0; padding: 0; }
             .document-frame { box-shadow: none; border: none; }
         }
@@ -452,31 +451,39 @@
                     </svg>
                     Descargar Word
                 </a>
-                {% elif mode == 'employee' and can_edit %}
+                {% elif mode == 'employee' and status == 'DRAFT' %}
+                <!-- DRAFT status: Show "Return to Edit" and "Confirm and Generate Code" buttons -->
+                <a href="/reviews/{{ review_id }}/edit" class="btn btn-secondary" id="btn-back-edit">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"></path>
+                    </svg>
+                    Volver a Modificar
+                </a>
                 <button class="btn btn-outline" id="btn-print">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
                     </svg>
                     Imprimir
                 </button>
-                <button class="btn btn-primary" id="btn-save" disabled>
+                <button class="btn btn-primary" id="btn-save-blocks" disabled>
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
                     </svg>
-                    Guardar
+                    Guardar Bloques
                 </button>
-                <button class="btn btn-success" id="btn-submit">
+                <button class="btn btn-success" id="btn-confirm-submit">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    Enviar para Aprobacion
+                    Confirmar y Generar Codigo
                 </button>
                 {% elif mode == 'employee' and status == 'SUBMITTED' %}
-                <button class="btn btn-primary" id="btn-generate-code">
+                <!-- SUBMITTED status: Show generate code interface -->
+                <button class="btn btn-outline" id="btn-print">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
                     </svg>
-                    Generar Codigo
+                    Imprimir
                 </button>
                 {% endif %}
             </div>
@@ -495,19 +502,25 @@
                 <p style="font-size: 0.875rem; color: #6b7280;">Revise el documento y haga clic en "Descargar Word" para obtener el documento final.</p>
             </div>
         </div>
-        {% elif not can_edit %}
+        {% elif status == 'SUBMITTED' %}
         <div class="info-banner warning">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
             </svg>
-            <p>Este documento ha sido enviado y no puede ser editado. Genere un codigo de aprobacion para que el supervisor pueda descargarlo.</p>
+            <p>Este documento ha sido confirmado y no puede ser editado. Genere un codigo de aprobacion para que el supervisor pueda descargarlo.</p>
         </div>
-        {% else %}
-        <div class="info-banner">
+        {% elif status == 'DRAFT' %}
+        <div class="info-banner info">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            <p>Revise el documento a continuacion. Puede editar los campos marcados en amarillo. Cuando este listo, haga clic en "Enviar para Aprobacion".</p>
+            <div>
+                <p><strong>Revise el documento y edite los bloques marcados en amarillo</strong></p>
+                <p style="font-size: 0.875rem; color: #6b7280;">
+                    Los bloques editables tienen un fondo amarillo. Para modificar los campos del formulario, use el boton "Volver a Modificar".
+                    Cuando este listo, haga clic en "Confirmar y Generar Codigo".
+                </p>
+            </div>
         </div>
         {% endif %}
 
@@ -521,24 +534,6 @@
                 {{ document_html | safe }}
             </div>
         </div>
-
-        {% if mode == 'employee' and can_edit %}
-        <!-- Editable Fields Panel -->
-        <div class="edit-fields-panel">
-            <h3>Campos Editables</h3>
-            <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 15px;">Haga clic en un campo para editarlo</p>
-            <div class="field-grid">
-                {% for field_name in editable_fields %}
-                <div class="field-item" data-field="{{ field_name }}" data-type="{% if field_name in ['Fecha_encargo', 'FF_Ejecicio', 'Fecha_cierre'] %}date{% else %}string{% endif %}">
-                    <div class="field-label">{{ field_name.replace('_', ' ') }}</div>
-                    <div class="field-value {% if not data.get(field_name) %}empty{% endif %}" id="field-{{ field_name }}">
-                        {{ data.get(field_name, 'Sin valor') }}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
 
         {% if mode == 'employee' and status == 'SUBMITTED' %}
         <!-- Approval Code Section -->
@@ -587,20 +582,30 @@
         {% endif %}
     </div>
 
-    <!-- Edit Modal -->
-    <div class="modal-overlay" id="edit-modal">
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="confirm-modal">
         <div class="modal">
             <div class="modal-header">
-                <h3 id="modal-title">Editar campo</h3>
+                <h3>Confirmar Envio</h3>
                 <button class="modal-close" id="modal-close">&times;</button>
             </div>
             <div class="modal-body">
-                <input type="text" class="form-input" id="modal-input">
-                <textarea class="form-input" id="modal-textarea" style="display:none;"></textarea>
+                <p style="margin-bottom: 15px;"><strong>Esta a punto de confirmar el documento.</strong></p>
+                <p style="color: #6b7280; font-size: 0.9375rem;">
+                    Una vez confirmado:
+                </p>
+                <ul style="color: #6b7280; font-size: 0.9375rem; margin: 10px 0 10px 20px;">
+                    <li>El documento no podra ser editado</li>
+                    <li>Se generara un codigo para el supervisor</li>
+                    <li>El supervisor podra descargar el documento Word</li>
+                </ul>
+                <p style="color: #6b7280; font-size: 0.9375rem; margin-top: 15px;">
+                    Si necesita hacer cambios en los campos del formulario, use "Volver a Modificar".
+                </p>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline" id="modal-cancel">Cancelar</button>
-                <button class="btn btn-primary" id="modal-save">Guardar</button>
+                <button class="btn btn-success" id="modal-confirm">Confirmar y Continuar</button>
             </div>
         </div>
     </div>
@@ -614,11 +619,9 @@
         const CAN_EDIT = {{ 'true' if can_edit else 'false' }};
         const MODE = '{{ mode }}';
         const STATUS = '{{ status }}';
-        const EDITABLE_FIELDS = {{ editable_fields | tojson if editable_fields else '[]' }};
 
         // State
-        let pendingChanges = {};
-        let currentEditField = null;
+        let pendingBlockChanges = {};
         let countdownInterval = null;
 
         // Toast helper
@@ -633,87 +636,35 @@
 
         // Update save button state
         function updateSaveButton() {
-            const btnSave = document.getElementById('btn-save');
+            const btnSave = document.getElementById('btn-save-blocks');
             if (btnSave) {
-                btnSave.disabled = Object.keys(pendingChanges).length === 0;
+                btnSave.disabled = Object.keys(pendingBlockChanges).length === 0;
             }
         }
 
-        // Modal functions
-        function openEditModal(fieldElement) {
-            if (!CAN_EDIT) return;
+        // Track block textarea changes
+        function initBlockEditors() {
+            const blockTextareas = document.querySelectorAll('.doc-block-custom textarea');
+            blockTextareas.forEach(textarea => {
+                const field = textarea.dataset.field || textarea.name;
+                const originalValue = textarea.value;
 
-            const field = fieldElement.dataset.field;
-            const type = fieldElement.dataset.type;
-            const fieldValueEl = document.getElementById(`field-${field}`);
-            const currentValue = pendingChanges[field] !== undefined
-                ? pendingChanges[field]
-                : (fieldValueEl ? fieldValueEl.textContent.trim() : '');
-
-            currentEditField = { element: fieldElement, field, type };
-
-            const modal = document.getElementById('edit-modal');
-            const modalTitle = document.getElementById('modal-title');
-            const modalInput = document.getElementById('modal-input');
-            const modalTextarea = document.getElementById('modal-textarea');
-
-            modalTitle.textContent = `Editar: ${field.replace(/_/g, ' ')}`;
-
-            if (type === 'date') {
-                modalInput.style.display = 'block';
-                modalTextarea.style.display = 'none';
-                modalInput.type = 'date';
-                modalInput.value = currentValue === 'Sin valor' ? '' : currentValue;
-            } else if (field.includes('Lista') || field.includes('detalle')) {
-                modalInput.style.display = 'none';
-                modalTextarea.style.display = 'block';
-                modalTextarea.value = currentValue === 'Sin valor' ? '' : currentValue;
-            } else {
-                modalInput.style.display = 'block';
-                modalTextarea.style.display = 'none';
-                modalInput.type = 'text';
-                modalInput.value = currentValue === 'Sin valor' ? '' : currentValue;
-            }
-
-            modal.classList.add('active');
+                textarea.addEventListener('input', () => {
+                    if (textarea.value !== originalValue) {
+                        pendingBlockChanges[field] = textarea.value;
+                    } else {
+                        delete pendingBlockChanges[field];
+                    }
+                    updateSaveButton();
+                });
+            });
         }
 
-        function closeEditModal() {
-            const modal = document.getElementById('edit-modal');
-            modal.classList.remove('active');
-            currentEditField = null;
-        }
+        // Save block changes
+        async function saveBlockChanges() {
+            if (Object.keys(pendingBlockChanges).length === 0) return true;
 
-        function saveFieldFromModal() {
-            if (!currentEditField) return;
-
-            const { element, field, type } = currentEditField;
-            const modalInput = document.getElementById('modal-input');
-            const modalTextarea = document.getElementById('modal-textarea');
-            const newValue = modalTextarea.style.display !== 'none'
-                ? modalTextarea.value
-                : modalInput.value;
-
-            // Update UI
-            const fieldValueEl = document.getElementById(`field-${field}`);
-            if (fieldValueEl) {
-                fieldValueEl.textContent = newValue || 'Sin valor';
-                fieldValueEl.classList.toggle('empty', !newValue);
-            }
-
-            // Track change
-            pendingChanges[field] = newValue;
-            updateSaveButton();
-
-            closeEditModal();
-            showToast(`Campo "${field.replace(/_/g, ' ')}" actualizado`, 'success');
-        }
-
-        // Save all pending changes
-        async function saveChanges() {
-            if (Object.keys(pendingChanges).length === 0) return;
-
-            const btnSave = document.getElementById('btn-save');
+            const btnSave = document.getElementById('btn-save-blocks');
             if (btnSave) {
                 btnSave.disabled = true;
                 btnSave.innerHTML = '<span class="loading-spinner"></span> Guardando...';
@@ -723,46 +674,55 @@
                 const response = await fetch(`/reviews/${REVIEW_ID}/data`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ data: pendingChanges })
+                    body: JSON.stringify({ data: pendingBlockChanges })
                 });
 
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    pendingChanges = {};
+                    pendingBlockChanges = {};
                     updateSaveButton();
-                    showToast('Cambios guardados correctamente', 'success');
-
-                    // Reload page to refresh document preview
-                    setTimeout(() => location.reload(), 1000);
+                    showToast('Bloques guardados correctamente', 'success');
+                    return true;
                 } else {
                     showToast(result.errors?.[0]?.message || 'Error al guardar', 'error');
+                    return false;
                 }
             } catch (error) {
                 showToast('Error de conexion', 'error');
+                return false;
             } finally {
                 if (btnSave) {
-                    btnSave.disabled = Object.keys(pendingChanges).length === 0;
-                    btnSave.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg> Guardar';
+                    btnSave.disabled = Object.keys(pendingBlockChanges).length === 0;
+                    btnSave.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg> Guardar Bloques';
                 }
             }
         }
 
+        // Show confirmation modal
+        function showConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('active');
+        }
+
+        // Hide confirmation modal
+        function hideConfirmModal() {
+            document.getElementById('confirm-modal').classList.remove('active');
+        }
+
         // Submit review
         async function submitReview() {
-            if (!confirm('Una vez enviado, el documento no podra ser editado. Continuar?')) {
-                return;
+            hideConfirmModal();
+
+            // Save pending block changes first
+            if (Object.keys(pendingBlockChanges).length > 0) {
+                const saved = await saveBlockChanges();
+                if (!saved) return;
             }
 
-            // Save pending changes first
-            if (Object.keys(pendingChanges).length > 0) {
-                await saveChanges();
-            }
-
-            const btnSubmit = document.getElementById('btn-submit');
+            const btnSubmit = document.getElementById('btn-confirm-submit');
             if (btnSubmit) {
                 btnSubmit.disabled = true;
-                btnSubmit.innerHTML = '<span class="loading-spinner"></span> Enviando...';
+                btnSubmit.innerHTML = '<span class="loading-spinner"></span> Procesando...';
             }
 
             try {
@@ -774,17 +734,17 @@
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    showToast('Documento enviado correctamente', 'success');
+                    showToast('Documento confirmado correctamente', 'success');
                     setTimeout(() => location.reload(), 1500);
                 } else {
-                    showToast(result.detail || 'Error al enviar', 'error');
+                    showToast(result.detail || 'Error al confirmar', 'error');
                 }
             } catch (error) {
                 showToast('Error de conexion', 'error');
             } finally {
                 if (btnSubmit) {
                     btnSubmit.disabled = false;
-                    btnSubmit.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Enviar para Aprobacion';
+                    btnSubmit.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Confirmar y Generar Codigo';
                 }
             }
         }
@@ -874,6 +834,11 @@
 
         // Event listeners
         document.addEventListener('DOMContentLoaded', () => {
+            // Initialize block editors
+            if (MODE === 'employee' && STATUS === 'DRAFT') {
+                initBlockEditors();
+            }
+
             // Load supervisors if in employee mode with SUBMITTED status
             if (MODE === 'employee' && STATUS === 'SUBMITTED') {
                 loadSupervisors();
@@ -884,44 +849,37 @@
                 startCountdown(300);
             }
 
-            // Editable fields click
-            document.querySelectorAll('.field-item:not(.readonly)').forEach(el => {
-                el.addEventListener('click', () => openEditModal(el));
-            });
-
             // Modal controls
-            const modalSave = document.getElementById('modal-save');
-            const modalCancel = document.getElementById('modal-cancel');
             const modalClose = document.getElementById('modal-close');
-            const modal = document.getElementById('edit-modal');
+            const modalCancel = document.getElementById('modal-cancel');
+            const modalConfirm = document.getElementById('modal-confirm');
+            const modal = document.getElementById('confirm-modal');
 
-            if (modalSave) modalSave.addEventListener('click', saveFieldFromModal);
-            if (modalCancel) modalCancel.addEventListener('click', closeEditModal);
-            if (modalClose) modalClose.addEventListener('click', closeEditModal);
+            if (modalClose) modalClose.addEventListener('click', hideConfirmModal);
+            if (modalCancel) modalCancel.addEventListener('click', hideConfirmModal);
+            if (modalConfirm) modalConfirm.addEventListener('click', submitReview);
 
             // Close modal on backdrop click
             if (modal) {
                 modal.addEventListener('click', (e) => {
-                    if (e.target === modal) closeEditModal();
+                    if (e.target === modal) hideConfirmModal();
                 });
             }
 
             // Close modal on Escape
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') closeEditModal();
+                if (e.key === 'Escape') hideConfirmModal();
             });
 
             // Buttons
-            const btnSave = document.getElementById('btn-save');
-            const btnSubmit = document.getElementById('btn-submit');
+            const btnSaveBlocks = document.getElementById('btn-save-blocks');
+            const btnConfirmSubmit = document.getElementById('btn-confirm-submit');
             const btnPrint = document.getElementById('btn-print');
-            const btnGenerateCode = document.getElementById('btn-generate-code');
             const btnGenerateCodePanel = document.getElementById('btn-generate-code-panel');
 
-            if (btnSave) btnSave.addEventListener('click', saveChanges);
-            if (btnSubmit) btnSubmit.addEventListener('click', submitReview);
+            if (btnSaveBlocks) btnSaveBlocks.addEventListener('click', saveBlockChanges);
+            if (btnConfirmSubmit) btnConfirmSubmit.addEventListener('click', showConfirmModal);
             if (btnPrint) btnPrint.addEventListener('click', () => window.print());
-            if (btnGenerateCode) btnGenerateCode.addEventListener('click', generateApprovalCode);
             if (btnGenerateCodePanel) btnGenerateCodePanel.addEventListener('click', generateApprovalCode);
         });
     </script>
