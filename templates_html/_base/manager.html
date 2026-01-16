@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manager Download - {{ client_name or 'Documento' }}</title>
+    <title>Aprobacion de Documento - {{ client_name or 'Documento' }}</title>
     <style>
         :root {
             --primary-color: #2563eb;
@@ -29,7 +29,7 @@
             border-radius: 12px;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
             width: 100%;
-            max-width: 450px;
+            max-width: 500px;
             overflow: hidden;
         }
         .header {
@@ -124,6 +124,13 @@
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
+        .form-input.code-input {
+            text-transform: uppercase;
+            font-family: monospace;
+            font-size: 1.25rem;
+            letter-spacing: 0.2em;
+            text-align: center;
+        }
 
         .btn {
             width: 100%;
@@ -149,6 +156,15 @@
             color: white;
         }
         .btn-success:hover { background: #15803d; }
+        .btn-outline {
+            background: white;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            margin-top: 10px;
+        }
+        .btn-outline:hover {
+            background: #f0f7ff;
+        }
 
         .error-message {
             background: #fee2e2;
@@ -223,6 +239,25 @@
             font-size: 0.75rem;
             color: #9ca3af;
         }
+
+        .supervisor-info {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .supervisor-info.show { display: block; }
+        .supervisor-info strong {
+            color: #166534;
+        }
+
+        .help-text {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -233,7 +268,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
             </div>
-            <h1>Descarga de Documento</h1>
+            <h1>Aprobacion de Documento</h1>
             <div class="subtitle">Carta de Manifestacion</div>
         </div>
 
@@ -257,14 +292,23 @@
             <!-- Auth Form -->
             <div id="auth-section">
                 <div class="error-message" id="error-message"></div>
+                <div class="supervisor-info" id="supervisor-info">
+                    Supervisor: <strong id="supervisor-name"></strong>
+                </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="password">Contrasena de Manager</label>
-                    <input type="password" class="form-input" id="password" placeholder="Introduce la contrasena" autocomplete="off">
+                    <label class="form-label" for="approval-code">Codigo de Aprobacion</label>
+                    <input type="text" class="form-input code-input" id="approval-code" placeholder="XXXXXXXX" maxlength="8" autocomplete="off">
+                    <p class="help-text">Codigo de 8 caracteres proporcionado por el empleado</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Contrasena del Supervisor</label>
+                    <input type="password" class="form-input" id="password" placeholder="Introduce tu contrasena" autocomplete="off">
                 </div>
 
                 <button class="btn btn-primary" id="btn-authorize">
-                    <span id="btn-text">Autorizar Descarga</span>
+                    <span id="btn-text">Verificar y Aprobar</span>
                 </button>
             </div>
 
@@ -275,11 +319,15 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
                 </div>
-                <h3>Autorizado</h3>
-                <p>La descarga comenzara automaticamente.</p>
+                <h3>Documento Aprobado</h3>
+                <p id="success-message">El documento ha sido verificado correctamente.</p>
+
+                <button class="btn btn-primary" id="btn-preview">
+                    Vista Previa
+                </button>
 
                 <button class="btn btn-success" id="btn-download">
-                    Descargar Ahora
+                    Descargar Word
                 </button>
 
                 <div class="countdown">
@@ -310,17 +358,23 @@
     <script>
         const REVIEW_ID = '{{ review_id }}';
         let downloadUrl = null;
+        let previewUrl = null;
         let expiresIn = 0;
         let countdownInterval = null;
 
         const authSection = document.getElementById('auth-section');
         const successSection = document.getElementById('success-section');
         const errorMessage = document.getElementById('error-message');
+        const supervisorInfo = document.getElementById('supervisor-info');
+        const supervisorName = document.getElementById('supervisor-name');
+        const approvalCodeInput = document.getElementById('approval-code');
         const passwordInput = document.getElementById('password');
         const btnAuthorize = document.getElementById('btn-authorize');
         const btnText = document.getElementById('btn-text');
         const btnDownload = document.getElementById('btn-download');
+        const btnPreview = document.getElementById('btn-preview');
         const countdownEl = document.getElementById('countdown');
+        const successMessage = document.getElementById('success-message');
 
         function showError(message) {
             errorMessage.textContent = message;
@@ -335,7 +389,7 @@
             btnAuthorize.disabled = loading;
             btnText.innerHTML = loading
                 ? '<span class="loading"></span>Verificando...'
-                : 'Autorizar Descarga';
+                : 'Verificar y Aprobar';
         }
 
         function startCountdown(seconds) {
@@ -354,8 +408,51 @@
             }, 1000);
         }
 
+        // Auto-format approval code (uppercase, no spaces)
+        approvalCodeInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        });
+
+        // Check code info when 8 characters entered
+        approvalCodeInput.addEventListener('input', async (e) => {
+            if (e.target.value.length === 8) {
+                try {
+                    const response = await fetch(`/manager/code/${e.target.value}/info`);
+                    if (response.ok) {
+                        const info = await response.json();
+                        supervisorName.textContent = info.supervisor_name;
+                        supervisorInfo.classList.add('show');
+
+                        if (!info.is_valid) {
+                            if (info.used) {
+                                showError('Este codigo ya ha sido utilizado.');
+                            } else {
+                                showError('El codigo ha expirado.');
+                            }
+                        } else {
+                            hideError();
+                        }
+                    } else {
+                        supervisorInfo.classList.remove('show');
+                        showError('Codigo no encontrado.');
+                    }
+                } catch (error) {
+                    supervisorInfo.classList.remove('show');
+                }
+            } else {
+                supervisorInfo.classList.remove('show');
+                hideError();
+            }
+        });
+
         async function authorize() {
+            const approvalCode = approvalCodeInput.value.trim().toUpperCase();
             const password = passwordInput.value.trim();
+
+            if (!approvalCode || approvalCode.length !== 8) {
+                showError('Por favor, introduce el codigo de aprobacion de 8 caracteres.');
+                return;
+            }
 
             if (!password) {
                 showError('Por favor, introduce la contrasena.');
@@ -366,24 +463,28 @@
             setLoading(true);
 
             try {
-                const response = await fetch(`/manager/reviews/${REVIEW_ID}/authorize`, {
+                const response = await fetch('/manager/authorize', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password })
+                    body: JSON.stringify({
+                        approval_code: approvalCode,
+                        password: password
+                    })
                 });
 
                 const result = await response.json();
 
                 if (result.success) {
                     downloadUrl = result.download_url;
+                    previewUrl = result.preview_url;
+
+                    if (result.supervisor_name) {
+                        successMessage.textContent = `Aprobado por ${result.supervisor_name}. Cliente: ${result.client_name || 'N/A'}`;
+                    }
+
                     authSection.style.display = 'none';
                     successSection.classList.add('show');
                     startCountdown(result.expires_in_seconds);
-
-                    // Auto-start download
-                    setTimeout(() => {
-                        window.location.href = downloadUrl;
-                    }, 1000);
                 } else {
                     showError(result.error || 'Error de autorizacion');
                 }
@@ -396,14 +497,29 @@
 
         // Event listeners
         btnAuthorize.addEventListener('click', authorize);
+
         passwordInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') authorize();
+        });
+
+        approvalCodeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && approvalCodeInput.value.length === 8) {
+                passwordInput.focus();
+            }
         });
 
         if (btnDownload) {
             btnDownload.addEventListener('click', () => {
                 if (downloadUrl) {
                     window.location.href = downloadUrl;
+                }
+            });
+        }
+
+        if (btnPreview) {
+            btnPreview.addEventListener('click', () => {
+                if (previewUrl) {
+                    window.open(previewUrl, '_blank');
                 }
             });
         }

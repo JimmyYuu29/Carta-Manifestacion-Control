@@ -1,0 +1,24 @@
+{
+  "supervisors": {
+    "admin": {
+      "name": "Administrador",
+      "email": "admin@forvismazars.com",
+      "password": "Forvis30",
+      "password_hash": "a8f5f167f44f4964e6c998dee827110c15b5be51a8b4a8f7df6a2f0ab0b4f2fb",
+      "active": true
+    },
+    "maria_jose": {
+      "name": "Maria Jose",
+      "email": "maria.jose@forvismazars.com",
+      "password": "maria_jose123",
+      "password_hash": "7b8b965ad4bca0e41ab51de7b31363a1f90bbeac9d7e8e72b59d44d8e9f6c3d2",
+      "active": true
+    }
+  },
+  "settings": {
+    "approval_code_ttl_hours": 72,
+    "download_token_ttl_seconds": 300,
+    "max_failed_attempts": 5,
+    "lockout_duration_minutes": 30
+  }
+}
