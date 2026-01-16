@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Carta de Manifestacion - {{ data.get('Nombre_Cliente', 'Cliente') }}</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --success-color: #16a34a;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --border-color: #e5e7eb;
+            --bg-editable: #fef9c3;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            background: #f3f4f6;
+        }
+
+        /* Top Toolbar */
+        .toolbar-container {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .toolbar {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .toolbar h1 {
+            font-size: 1.25rem;
+            color: #111827;
+            margin: 0;
+        }
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-DRAFT { background: #dbeafe; color: #1d4ed8; }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        .btn svg { width: 18px; height: 18px; }
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-success { background: var(--success-color); color: white; }
+        .btn-success:hover { background: #15803d; }
+        .btn-outline {
+            background: white;
+            border: 2px solid var(--border-color);
+            color: #374151;
+        }
+        .btn-outline:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Form Container */
+        .form-container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        /* Info Banner */
+        .info-banner {
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .info-banner svg { flex-shrink: 0; width: 24px; height: 24px; }
+        .info-banner p { margin: 0; font-size: 0.9375rem; }
+
+        /* Form Sections */
+        .form-section {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .form-section-header {
+            background: #f9fafb;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .form-section-header h2 {
+            font-size: 1rem;
+            color: #374151;
+            margin: 0;
+        }
+        .form-section-body {
+            padding: 20px;
+        }
+
+        /* Form Fields */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .form-group {
+            margin-bottom: 0;
+        }
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+        .form-label .required {
+            color: var(--danger-color);
+        }
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .form-input:disabled {
+            background: #f9fafb;
+            color: #6b7280;
+            cursor: not-allowed;
+        }
+        textarea.form-input {
+            min-height: 100px;
+            resize: vertical;
+        }
+        select.form-input {
+            cursor: pointer;
+        }
+        .form-hint {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        /* Readonly field indicator */
+        .readonly-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-left: 8px;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 2000;
+        }
+        .toast {
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 0.875rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+        }
+        .toast-success { background: #dcfce7; color: #166534; border-left: 4px solid var(--success-color); }
+        .toast-error { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--danger-color); }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Loading */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Toolbar -->
+    <div class="toolbar-container">
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <h1>Editar Campos del Formulario</h1>
+                <span class="status-badge status-{{ status }}">{{ status }}</span>
+            </div>
+            <div class="toolbar-right">
+                <button class="btn btn-primary" id="btn-save" disabled>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                    </svg>
+                    Guardar Cambios
+                </button>
+                <a href="/reviews/{{ review_id }}/preview" class="btn btn-success" id="btn-preview">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                    Ver Vista Previa
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <!-- Info Banner -->
+        <div class="info-banner">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+                <p><strong>Modifique los campos del formulario</strong></p>
+                <p style="font-size: 0.875rem; color: #6b7280;">
+                    Solo puede editar los campos marcados. Los campos en gris son de solo lectura.
+                    Cuando termine, haga clic en "Ver Vista Previa" para revisar el documento.
+                </p>
+            </div>
+        </div>
+
+        <form id="edit-form">
+            {% for section in sections %}
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h2>{{ section.title }}</h2>
+                </div>
+                <div class="form-section-body">
+                    <div class="form-grid">
+                        {% for field_name, field_config in fields.items() if field_config.section == section.id %}
+                        <div class="form-group {% if field_config.type == 'list' or field_config.multiline %}full-width{% endif %}">
+                            <label class="form-label" for="field-{{ field_name }}">
+                                {{ field_config.label }}
+                                {% if field_config.required %}<span class="required">*</span>{% endif %}
+                                {% if not field_config.editable %}
+                                <span class="readonly-indicator">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:12px;height:12px;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                    </svg>
+                                    Solo lectura
+                                </span>
+                                {% endif %}
+                            </label>
+
+                            {% if field_config.type == 'enum' %}
+                            <select class="form-input" id="field-{{ field_name }}" name="{{ field_name }}"
+                                    {% if not field_config.editable %}disabled{% endif %}
+                                    data-field="{{ field_name }}">
+                                <option value="">Seleccione...</option>
+                                {% for opt in field_config.enum_values %}
+                                <option value="{{ opt }}" {% if data.get(field_name) == opt %}selected{% endif %}>{{ opt }}</option>
+                                {% endfor %}
+                            </select>
+
+                            {% elif field_config.type == 'boolean' %}
+                            <select class="form-input" id="field-{{ field_name }}" name="{{ field_name }}"
+                                    {% if not field_config.editable %}disabled{% endif %}
+                                    data-field="{{ field_name }}">
+                                <option value="">Seleccione...</option>
+                                <option value="si" {% if data.get(field_name) == 'si' or data.get(field_name) == true %}selected{% endif %}>Si</option>
+                                <option value="no" {% if data.get(field_name) == 'no' or data.get(field_name) == false %}selected{% endif %}>No</option>
+                            </select>
+
+                            {% elif field_config.type == 'date' %}
+                            <input type="date" class="form-input" id="field-{{ field_name }}" name="{{ field_name }}"
+                                   value="{{ data.get(field_name, '') }}"
+                                   {% if not field_config.editable %}disabled{% endif %}
+                                   data-field="{{ field_name }}">
+
+                            {% elif field_config.multiline or field_config.type == 'list' %}
+                            <textarea class="form-input" id="field-{{ field_name }}" name="{{ field_name }}"
+                                      {% if not field_config.editable %}disabled{% endif %}
+                                      data-field="{{ field_name }}">{{ data.get(field_name, '') if data.get(field_name) is string else (data.get(field_name) | tojson if data.get(field_name) else '') }}</textarea>
+                            {% if field_config.type == 'list' %}
+                            <div class="form-hint">Para listas, use el formato JSON: [{"nombre": "...", "cargo": "..."}]</div>
+                            {% endif %}
+
+                            {% else %}
+                            <input type="text" class="form-input" id="field-{{ field_name }}" name="{{ field_name }}"
+                                   value="{{ data.get(field_name, '') }}"
+                                   {% if not field_config.editable %}disabled{% endif %}
+                                   {% if field_config.validation and field_config.validation.max_length %}maxlength="{{ field_config.validation.max_length }}"{% endif %}
+                                   data-field="{{ field_name }}">
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </form>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        const REVIEW_ID = '{{ review_id }}';
+        const EDITABLE_FIELDS = {{ editable_fields | tojson }};
+
+        let pendingChanges = {};
+        let originalValues = {};
+
+        // Initialize original values
+        document.querySelectorAll('[data-field]').forEach(input => {
+            const field = input.dataset.field;
+            originalValues[field] = input.value;
+        });
+
+        // Toast helper
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        // Update save button state
+        function updateSaveButton() {
+            const btnSave = document.getElementById('btn-save');
+            if (btnSave) {
+                btnSave.disabled = Object.keys(pendingChanges).length === 0;
+            }
+        }
+
+        // Track changes
+        document.querySelectorAll('[data-field]').forEach(input => {
+            if (!input.disabled) {
+                input.addEventListener('input', () => {
+                    const field = input.dataset.field;
+                    if (input.value !== originalValues[field]) {
+                        pendingChanges[field] = input.value;
+                    } else {
+                        delete pendingChanges[field];
+                    }
+                    updateSaveButton();
+                });
+
+                input.addEventListener('change', () => {
+                    const field = input.dataset.field;
+                    if (input.value !== originalValues[field]) {
+                        pendingChanges[field] = input.value;
+                    } else {
+                        delete pendingChanges[field];
+                    }
+                    updateSaveButton();
+                });
+            }
+        });
+
+        // Save changes
+        async function saveChanges() {
+            if (Object.keys(pendingChanges).length === 0) return true;
+
+            const btnSave = document.getElementById('btn-save');
+            if (btnSave) {
+                btnSave.disabled = true;
+                btnSave.innerHTML = '<span class="loading-spinner"></span> Guardando...';
+            }
+
+            try {
+                const response = await fetch(`/reviews/${REVIEW_ID}/data`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: pendingChanges })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    // Update original values
+                    for (const [field, value] of Object.entries(pendingChanges)) {
+                        originalValues[field] = value;
+                    }
+                    pendingChanges = {};
+                    updateSaveButton();
+                    showToast('Cambios guardados correctamente', 'success');
+                    return true;
+                } else {
+                    showToast(result.errors?.[0]?.message || 'Error al guardar', 'error');
+                    return false;
+                }
+            } catch (error) {
+                showToast('Error de conexion', 'error');
+                return false;
+            } finally {
+                if (btnSave) {
+                    btnSave.disabled = Object.keys(pendingChanges).length === 0;
+                    btnSave.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg> Guardar Cambios';
+                }
+            }
+        }
+
+        // Event listeners
+        document.getElementById('btn-save')?.addEventListener('click', saveChanges);
+
+        // Save before navigating to preview
+        document.getElementById('btn-preview')?.addEventListener('click', async (e) => {
+            if (Object.keys(pendingChanges).length > 0) {
+                e.preventDefault();
+                const saved = await saveChanges();
+                if (saved) {
+                    window.location.href = `/reviews/${REVIEW_ID}/preview`;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

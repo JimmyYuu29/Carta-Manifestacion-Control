@@ -21,24 +21,54 @@
     .indent2 { margin-left: 48px; }
     .indent3 { margin-left: 72px; }
 
-    /* B1 block */
-    .doc-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 14px 10px; background: #fcfcfd; margin: 14px 0; }
+    /* Editable BLOCK styling */
+    .doc-block {
+      border: 2px dashed #fbbf24;
+      border-radius: 10px;
+      padding: 14px 14px 10px;
+      background: #fef9c3;
+      margin: 14px 0;
+      position: relative;
+    }
+    .doc-block::before {
+      content: 'BLOQUE EDITABLE';
+      position: absolute;
+      top: -10px;
+      left: 12px;
+      background: #fbbf24;
+      color: #78350f;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
     .doc-block-base { padding: 8px 10px; background: #fff; border: 1px dashed #d0d5dd; border-radius: 8px; }
     .doc-block-custom { margin-top: 10px; }
     .doc-block-custom label { display: block; font-size: 12px; color: #475467; margin-bottom: 6px; }
-    .doc-block-custom textarea { width: 100%; min-height: 90px; resize: vertical; padding: 10px 12px; border: 1px solid #d0d5dd; border-radius: 8px; font: inherit; }
+    .doc-block-custom textarea {
+      width: 100%;
+      min-height: 90px;
+      resize: vertical;
+      padding: 10px 12px;
+      border: 1px solid #d0d5dd;
+      border-radius: 8px;
+      font: inherit;
+      box-sizing: border-box;
+    }
     .hint { font-size: 12px; color: #667085; margin-top: 6px; }
 
-    /* 列表 */
+    /* Lists */
     ul { margin: 8px 0 8px 24px; padding-left: 18px; }
     li { margin: 6px 0; }
 
-    /* 表格（用于 ANEXO 1 示例表） */
+    /* Tables */
     table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; }
     th, td { border: 1px solid #e5e7eb; padding: 10px 10px; vertical-align: top; }
     th { background: #f9fafb; text-align: left; font-weight: 600; }
 
-    /* 签字区 */
+    /* Signature area */
     .sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 26px; }
     .sign-line { margin-top: 28px; border-top: 1px solid #111827; padding-top: 6px; white-space: pre-wrap; }
   </style>
@@ -47,7 +77,7 @@
 <body>
   <div class="page">
 
-    <!-- 顶部抬头（你可按公司视觉替换） -->
+    <!-- Header -->
     <div class="center muted">
       <p><strong>PAPEL MEMBRETADO DEL CLIENTE</strong></p>
       <div class="sp-8"></div>
@@ -61,36 +91,36 @@
     <div class="sp-24"></div>
 
     <p><strong>Forvis Mazars Auditores, S.L.P.</strong></p>
-    <p>{{Direccion_Oficina}}</p>
-    <p>{{CP}} – {{Ciudad_Oficina}}</p>
+    <p>{{ Direccion_Oficina }}</p>
+    <p>{{ CP }} – {{ Ciudad_Oficina }}</p>
 
     <div class="sp-24"></div>
 
-    <p><strong>{{Fecha_de_hoy}}</strong></p>
+    <p><strong>{{ Fecha_de_hoy }}</strong></p>
 
     <div class="sp-16"></div>
 
     <p>
-      Esta carta de manifestaciones se proporciona en relación con su auditoría de las cuentas anuales de
-      {{Nombre_Cliente}} (en adelante, la Entidad), correspondientes al ejercicio terminado el {{FF_Ejecicio}},
-      a efectos de expresar una opinión sobre si las citadas cuentas anuales expresan, en todos los aspectos
-      significativos, la imagen fiel, de conformidad con el marco normativo de información financiera aplicable
-      a la Entidad en España.
+      Esta carta de manifestaciones se proporciona en relacion con su auditoria de las cuentas anuales de
+      {{ Nombre_Cliente }} (en adelante, la Entidad), correspondientes al ejercicio terminado el {{ FF_Ejecicio }},
+      a efectos de expresar una opinion sobre si las citadas cuentas anuales expresan, en todos los aspectos
+      significativos, la imagen fiel, de conformidad con el marco normativo de informacion financiera aplicable
+      a la Entidad en Espana.
     </p>
 
-    <!-- B1 可控编辑块：来自 docx 中的 [[BLOCK:key]]...[[/BLOCK]] -->
-    <section class="doc-block" data-block="key">
+    <!-- BLOCK: key - Editable block for confirmation statement -->
+    <section class="doc-block" data-block="key" data-block-key="key">
       <div class="doc-block-base">
         <p>
-          Confirmamos que, según nuestro leal saber y entender, tras haber realizado las indagaciones que hemos
+          Confirmamos que, segun nuestro leal saber y entender, tras haber realizado las indagaciones que hemos
           considerado necesarias a los efectos de informarnos adecuadamente:
         </p>
       </div>
 
       <div class="doc-block-custom">
-        <label>补充说明（可选，仅追加，不会修改原文）</label>
-        <textarea name="key_custom" data-field="key_custom">{{ key_custom | default('') }}</textarea>
-        <div class="hint">此处内容将追加到最终 Word 中该段落之后（B1 模式）。</div>
+        <label>Complemento (opcional - se anadira al documento final)</label>
+        <textarea name="key_custom" data-field="key_custom" placeholder="Agregue texto adicional aqui...">{{ key_custom | default('', true) }}</textarea>
+        <div class="hint">Este contenido se anadira al parrafo anterior en el documento Word final.</div>
       </div>
     </section>
 
@@ -99,64 +129,56 @@
     <h2>Estados financieros</h2>
 
     <p class="indent">
-      Tal como se establece en los términos de la carta de encargo de auditoría de fecha {{Fecha_encargo}},
-      {% set organo_text = { 'consejo': 'los miembros del Consejo de Administración somos los responsables',
-                             'administrador_unico': 'el Administrador Único es el responsable',
-                             'administradores': 'los Administradores somos los responsables' } %}
-      {{ organo_text[organo] }} de la formulación de las cuentas anuales de conformidad con el marco de información
-      financiera que resulta de aplicación a la Entidad, y en particular de que las mismas expresen la imagen fiel
-      del patrimonio, de la situación financiera y de los resultados de sus operaciones, de conformidad el marco
-      normativo de información financiera aplicable a la Entidad en España).
-      {% if comision == 'sí' %}Asimismo, la Comisión de Auditoría (u órgano equivalente) supervisa el proceso de elaboración
-      y presentación de la información financiera preceptiva y formula recomendaciones al órgano de administración para
-      salvaguardar su integridad.
+      Tal como se establece en los terminos de la carta de encargo de auditoria de fecha {{ Fecha_encargo }},
+      {% if organo == 'consejo' %}los miembros del Consejo de Administracion somos los responsables{% elif organo == 'administrador_unico' %}el Administrador Unico es el responsable{% else %}los Administradores somos los responsables{% endif %} de la formulacion de las cuentas anuales de conformidad con el marco de informacion
+      financiera que resulta de aplicacion a la Entidad, y en particular de que las mismas expresen la imagen fiel
+      del patrimonio, de la situacion financiera y de los resultados de sus operaciones, de conformidad el marco
+      normativo de informacion financiera aplicable a la Entidad en Espana).
+      {% if comision == 'si' or comision == true %}Asimismo, la Comision de Auditoria (u organo equivalente) supervisa el proceso de elaboracion
+      y presentacion de la informacion financiera preceptiva y formula recomendaciones al organo de administracion para
+      salvaguardar su integridad.{% endif %}
     </p>
 
-    <p class="indent">{% endif %}</p>
-
     <p class="indent">
-      Las hipótesis significativas, que hemos empleado en la realización de estimaciones contables, incluidas las
+      Las hipotesis significativas, que hemos empleado en la realizacion de estimaciones contables, incluidas las
       estimaciones medidas a valor razonable, son razonables.
     </p>
 
     <p class="indent">
       Todos los hechos ocurridos con posterioridad a la fecha de las cuentas anuales y con respecto a los que el
-      marco normativo de información financiera aplicable a la Entidad en España exige un ajuste, o que sean revelados,
+      marco normativo de informacion financiera aplicable a la Entidad en Espana exige un ajuste, o que sean revelados,
       han sido ajustados o revelados.
     </p>
 
-    <p class="indent">{% if incorreccion == 'sí' %}</p>
-
+    {% if incorreccion == 'si' or incorreccion == true %}
     <p class="indent">
       Los efectos de las incorrecciones no corregidas son inmateriales, tanto individualmente como de forma agregada,
       para las cuentas anuales consideradas en su conjunto. En el Anexo _ de esta carta de manifestaciones se adjunta
-      detalle de las incorrecciones no corregidas
+      detalle de las incorrecciones no corregidas.
     </p>
 
     <p class="indent">
-      Las cifras e información correspondientes al ejercicio {{ anio_incorreccion|int - 1 }} que figuran en las cuentas
-      anuales del ejercicio {{Anio_incorreccion}} a efectos comparativos, han sido adaptadas con el fin de corregir las
-      incorrecciones materiales detectadas en el epígrafe {{Epigrafe}}de las cuentas anuales del ejercicio anterior, por lo
-      que dicha información no coincide con la contenida en las cuentas anuales aprobadas por la Junta General de
-      Accionistas. Dicha corrección es adecuada y se encuentra explicada en la memoria de las cuentas anuales.
+      Las cifras e informacion correspondientes al ejercicio {{ (Anio_incorreccion | int) - 1 if Anio_incorreccion else '' }} que figuran en las cuentas
+      anuales del ejercicio {{ Anio_incorreccion }} a efectos comparativos, han sido adaptadas con el fin de corregir las
+      incorrecciones materiales detectadas en el epigrafe {{ Epigrafe }} de las cuentas anuales del ejercicio anterior, por lo
+      que dicha informacion no coincide con la contenida en las cuentas anuales aprobadas por la Junta General de
+      Accionistas. Dicha correccion es adecuada y se encuentra explicada en la memoria de las cuentas anuales.
     </p>
-
-    <p class="indent">{% endif %}</p>
+    {% endif %}
 
     <div class="sp-16"></div>
 
-    <h2>Información proporcionada</h2>
+    <h2>Informacion proporcionada</h2>
 
     <p class="indent">Les hemos proporcionado:</p>
 
     <ul class="indent">
       <li>
-        Acceso a toda la información de la que tenemos conocimiento y que es relevante para la preparación de las
-        cuentas anuales, tal como registros, documentación y otro material;
-        {% if limitacion_alcance == 'sí' %}excepto por {{ detalle_limitacion }}{% endif %}.
+        Acceso a toda la informacion de la que tenemos conocimiento y que es relevante para la preparacion de las
+        cuentas anuales, tal como registros, documentacion y otro material{% if limitacion_alcance == 'si' or limitacion_alcance == true %}; excepto por {{ detalle_limitacion }}{% endif %}.
       </li>
-      <li>Información adicional que nos han solicitado para los fines de la auditoría; y</li>
-      <li>Acceso ilimitado a las personas de la Entidad de las cuales ustedes han considerado necesario obtener evidencia de auditoría.</li>
+      <li>Informacion adicional que nos han solicitado para los fines de la auditoria; y</li>
+      <li>Acceso ilimitado a las personas de la Entidad de las cuales ustedes han considerado necesario obtener evidencia de auditoria.</li>
     </ul>
 
     <p class="indent">Todas las transacciones se han registrado en los registros contables y se reflejan en las cuentas anuales.</p>
@@ -164,15 +186,15 @@
     <p class="indent">Les confirmamos que:</p>
 
     <p class="indent2">
-      Les hemos revelado los resultados de nuestra valoración del riesgo de que las cuentas anuales puedan contener una
-      incorrección material debida a fraude.
+      Les hemos revelado los resultados de nuestra valoracion del riesgo de que las cuentas anuales puedan contener una
+      incorreccion material debida a fraude.
     </p>
 
-    <p class="indent2">Les hemos revelado toda la información relativa a:</p>
+    <p class="indent2">Les hemos revelado toda la informacion relativa a:</p>
 
     <p class="indent3">
-      fraude o indicios de fraude de la que tenemos conocimiento y que afecta a la Entidad e implica a la dirección, a
-      empleados que desempeñan funciones significativas en el control interno u otros, cuando el fraude pudiera tener un
+      fraude o indicios de fraude de la que tenemos conocimiento y que afecta a la Entidad e implica a la direccion, a
+      empleados que desempenan funciones significativas en el control interno u otros, cuando el fraude pudiera tener un
       efecto material en las cuentas anuales.
     </p>
 
@@ -182,73 +204,82 @@
     </p>
 
     <p class="indent2">
-      En relación a lo anterior, reconocemos nuestra responsabilidad del control interno que consideremos necesario para
-      permitir la preparación de las cuentas anuales libres de incorrección material, debida a fraude o error.
+      En relacion a lo anterior, reconocemos nuestra responsabilidad del control interno que consideremos necesario para
+      permitir la preparacion de las cuentas anuales libres de incorreccion material, debida a fraude o error. En particular,
+      reconocemos nuestra responsabilidad en el diseno, implementacion y mantenimiento de los sistemas de control interno
+      y contable de la Entidad con el objeto de prevenir y detectar fraudes y errores.
     </p>
 
     <p class="indent2">
       Les hemos revelado todos los casos conocidos de incumplimiento o sospecha de incumplimiento de las disposiciones
-      legales y reglamentarias cuyos efectos deben ser considerados al preparar las cuentas anuales.
+      legales, reglamentarias o contractuales cuyos efectos deberian considerarse para preparar las cuentas anuales.
+      En este sentido, los unicos compromisos, contingencias y responsabilidades son los reflejados en las cuentas anuales,
+      no existiendo mas reclamaciones o demandas recibidas ni en potencia que nuestros abogados y asesores fiscales nos
+      hubiesen notificado que sea probable que nos vayan a ser planteadas y que hubiesen de ser registradas y/o desglosadas
+      en las cuentas anuales.
     </p>
 
     <p class="indent2">
-      Los únicos abogados y asesores fiscales con los que trabaja la Entidad son los siguientes:
+      Los unicos abogados y asesores fiscales con los que trabaja la Entidad son los siguientes:
     </p>
 
-    <p class="indent2">{{Lista_Abogados}}</p>
+    <p class="indent2">{{ Lista_Abogados }}</p>
 
     <div class="sp-16"></div>
 
     <p class="indent2">
-      Les hemos revelado la identidad de las partes vinculadas a la Entidad, tal como las define el apartado 13ª de las
-      Normas de Elaboración de las Cuentas Anuales del Plan General de Contabilidad, así como todas las relaciones y
-      transacciones con partes vinculadas, así como los saldos y provisiones por deudas incobrables relacionados con los
-      saldos pendientes de las partes vinculadas. En este sentido, les hemos facilitado todos los contratos, acuerdos e
-      información relativa a las evaluaciones realizadas.
+      Les hemos revelado la identidad de las partes vinculadas a la Entidad, tal como las define el apartado 13a de las
+      Normas de Elaboracion de las Cuentas Anuales del Plan General de Contabilidad, y todas las relaciones y transacciones
+      con partes vinculadas de las que tenemos conocimiento. Todas las relaciones y transacciones con partes vinculadas se
+      han contabilizado y revelado de forma adecuada, de conformidad con los requerimientos del marco normativo de informacion
+      financiera aplicable a la Entidad en Espana. El registro de todas las transacciones se ha realizado a precios de mercado
+      y existe un sistema adecuado de documentacion de las mismas. Al respecto, en el {{ anexo_partes }} de esta carta se incluye
+      la identificacion de las partes vinculadas a la Entidad.
+    </p>
+
+    <p class="indent2">
+      En este sentido, les hemos facilitado todos los contratos, acuerdos e informacion relativa a las evaluaciones realizadas
+      para definir la existencia de control, influencia significativa o control conjunto de las inversiones y los negocios conjuntos.
     </p>
 
     <p class="indent2">
       Les hemos facilitado todas las actas de las reuniones mantenidas por el
-      {% set organo_nombre = { 'consejo': 'Consejo de Administración',
-                              'administrador_unico': 'Administrador Único',
-                              'administradores': 'Administradores' } %}
-      {{ organo_nombre[organo] }}, el comité de dirección y la junta general de accionistas (o asamblea de socios), así como
-      todas las comunicaciones relevantes recibidas de o emitidas a los organismos reguladores, auditores internos y otros.
+      {% if organo == 'consejo' %}Consejo de Administracion{% elif organo == 'administrador_unico' %}Administrador Unico{% else %}Administradores{% endif %}{% if junta == 'si' or junta == true %}, la Junta de Accionistas{% endif %}{% if comite == 'si' or comite == true %} y el Comite correspondiente{% endif %} para el periodo comprendido entre el comienzo del ejercicio sujeto a la auditoria y el dia de esta carta, de las que adjuntamos relacion preparada por el Secretario del Consejo.
     </p>
 
     <p class="indent2">
       Hemos evaluado la capacidad de la Entidad de continuar como empresa en funcionamiento teniendo en cuenta toda la
-      información relevante disponible hasta {{Fecha_de_hoy}} y no hemos identificado ningún hecho o condición que pudiera
-      generar dudas significativas sobre la capacidad de la Entidad para continuar como empresa en funcionamiento.
+      informacion disponible sobre el futuro, que cubre al menos los doce meses siguientes a partir del final del ejercicio
+      sobre el que se informa pero que no se limita a dicho periodo. Confirmamos que no tenemos conocimiento de incertidumbres
+      materiales relacionadas con hechos o condiciones que pueden generar dudas significativas sobre la capacidad de la Sociedad
+      de continuar como empresa en funcionamiento.
     </p>
 
-    <p class="indent2">{% if dudas == 'sí' %}</p>
-
+    {% if dudas == 'si' or dudas == true %}
     <p class="indent2">
-      “Cuando se han identificado hechos o condiciones que pueden generar dudas significativas sobre la capacidad de la
-      Sociedad de continuar como empresa en funcionamiento, hemos revelado esos hechos o condiciones, así como nuestros
-      planes para abordar esos hechos o condiciones en la memoria de las cuentas anuales. Los planes son factibles y
-      existe una alta probabilidad de implementarlos con éxito”.
-    </p>
-
-    <p class="indent2">
-      Les hemos facilitado toda la información relevante sobre los principales factores de riesgo, hipótesis e
-      incertidumbres que subyacen en las proyecciones de los flujos de efectivo.
+      "Cuando se han identificado hechos o condiciones que pueden generar dudas significativas sobre la capacidad de la
+      Sociedad de continuar como empresa en funcionamiento, insertar el siguiente texto:
     </p>
 
     <p class="indent2">
-      Adicionalmente al párrafo anterior, cuando se han identificado hechos o condiciones que pueden generar dudas
-      significativas sobre la capacidad de la Sociedad de continuar como empresa en funcionamiento, les hemos facilitado
-      toda la información relevante sobre los principales factores de riesgo, hipótesis e incertidumbres que subyacen en
-      las proyecciones de los flujos de efectivo.
+      Les hemos facilitado toda la informacion relevante sobre los principales factores de riesgo, hipotesis e
+      incertidumbres de los que tenemos conocimiento que son relevantes en relacion con la capacidad de la Entidad
+      de continuar como empresa en funcionamiento, y se incluyen integramente en la memoria de las cuentas anuales,
+      de conformidad con lo establecido por el marco normativo de informacion financiera aplicable.
     </p>
 
     <p class="indent2">
-      Confirmamos que los siguientes apartados [la tabla adjunta] contienen información detallada de nuestros planes y de
-      la viabilidad de dichos planes:
+      Adicionalmente al parrafo anterior, cuando se han identificado hechos o condiciones que pueden generar dudas
+      significativas sobre la capacidad de la Sociedad de continuar como empresa en funcionamiento, y se presentan
+      planes de la direccion como factores mitigantes:
     </p>
 
-    <p class="indent2">{% endif %}</p>
+    <p class="indent2">
+      Confirmamos que los siguientes apartados [la tabla adjunta] contienen informacion detallada de nuestros planes y de
+      la viabilidad de los mismos, en cuanto a actuaciones futuras relevantes que permitiran a la Entidad continuar como
+      empresa en funcionamiento."
+    </p>
+    {% endif %}
 
     <div class="hr"></div>
 
@@ -262,188 +293,210 @@
     </p>
 
     <p class="indent">
-      Las cuentas anuales incluyen la información que hemos considerado significativa sobre la naturaleza y propósito de
-      negocio de los acuerdos de la Entidad que no figuran recogidos en el balance, así como su posible impacto financiero.
+      Las cuentas anuales incluyen la informacion que hemos considerado significativa sobre la naturaleza y proposito de
+      negocio de los acuerdos de la Entidad que no figuran recogidos en el balance, asi como su posible impacto financiero.
     </p>
 
     <p class="indent">
-      La Entidad no tenía, ni tiene en proyecto, ninguna decisión que pudiera alterar significativamente el valor contabilizado
-      o la clasificación de activos y pasivos reflejados en las cuentas anuales.
+      La Entidad no tenia, ni tiene en proyecto, ninguna decision que pudiera alterar significativamente el valor contabilizado
+      en las cuentas anuales de los activos, pasivos e instrumentos de patrimonio o su clasificacion, la presentacion de la
+      cuenta de perdidas y ganancias o que tengan o puedan tener un efecto significativo en el patrimonio.
     </p>
 
     <p class="indent">
-      La Entidad no tenía, ni tiene en este momento despidos en curso, ni necesidad o proyecto de efectuarlos, de los que pudiera
-      derivarse cualquier deuda u obligación de naturaleza laboral que haya podido ser omitida en las cuentas anuales.
+      La Entidad no tenia, ni tiene en este momento despidos en curso, ni necesidad o proyecto de efectuarlos, de los que pudiera
+      derivarse pagos por indemnizaciones de importancia, al amparo de la legislacion vigente, que no esten ya reflejadas en las
+      cuentas anuales. Por esta razon, no se estima preciso efectuar provision adicional alguna por este concepto.
     </p>
 
     <p class="indent">
-      La Entidad tiene título de propiedad adecuado o tiene el control efectivo de todos los activos que figuran en balance (excepto
-      los activos de arrendamiento identificados en el siguiente punto). Asimismo, sobre los mismos no existen cargas ni gravámenes,
-      ni se encuentran pignorados, salvo lo indicado en la memoria.
+      La Entidad tiene titulo de propiedad adecuado o tiene el control efectivo de todos los activos que figuran en balance
+      (en particular los provenientes de contratos de arrendamiento). Los bienes estan libres de gravamenes, hipotecas y
+      cualquier otro tipo de restricciones, compromisos o garantias, salvo los indicados en la memoria.
     </p>
 
     <p class="indent">
       Los saldos de las cuentas de inmovilizado material no reflejan bienes que pudieran haberse dado de baja o estuvieran fuera de
-      funcionamiento, salvo lo indicado en la memoria.
+      uso, salvo los indicados en la memoria.
     </p>
 
-    <p class="indent">{% if rent == 'sí' %}</p>
-
+    {% if rent == 'si' or rent == true %}
     <p class="indent">
-      La Dirección ha analizado todos los contratos de arrendamiento, incluidos los contratos de renting, teniendo en cuenta los
-      requisitos del marco normativo de información financiera aplicable a la Entidad en España, y ha contabilizado todos los contratos
-      de conformidad con sus términos y condiciones.
+      La Direccion ha analizado todos los contratos de arrendamiento, incluidos los contratos de renting, teniendo en cuenta
+      la norma de registro y valoracion correspondiente. En funcion de los acuerdos y obligaciones establecidos en dichos contratos
+      y de la intencion de la Entidad sobre la utilizacion de los bienes objeto de arrendamiento, les manifestamos que hemos
+      considerado que no se han transferido todos los riesgos y beneficios inherentes a la propiedad de los bienes objeto de
+      arrendamiento, por lo que los contratos se han registrado y valorado como arrendamientos operativos.
     </p>
-
-    <p class="indent">{% endif %}</p>
+    {% endif %}
 
     <p class="indent">
       No se han dado de baja activos financieros de los cuales no se hayan transferido los riesgos y ventajas sustanciales inherentes a
-      la propiedad, o cuando la Entidad no haya perdido el control del activo. Asimismo, hemos revelado los activos financieros que han
-      sido pignorados como garantía de pasivos.
+      su propiedad o para los que la Entidad haya retenido el control de los mismos.
     </p>
 
     <p class="indent">
-      Se han realizado las evaluaciones de deterioro de valor de los activos o grupos de activos al nivel adecuado y se han reconocido,
-      en caso necesario, cualquier pérdida por deterioro, habiéndose revelado en la memoria de las cuentas anuales.
+      Se han realizado las evaluaciones de deterioro de valor de los activos o grupos de activos al nivel adecuado y se han registrado,
+      en su caso, las perdidas por deterioro de valor correspondientes. Las cuentas anuales reflejan todas las correcciones valorativas
+      requeridas de acuerdo con las normas de registro y valoracion correspondientes al {{ Fecha_cierre }}.
     </p>
+
+    {% if experto == 'si' or experto == true %}
+    <p class="indent">
+      Tras evaluar la capacidad y competencia de {{ nombre_experto }}, confirmamos nuestra conformidad con los resultados obtenidos
+      en la valoracion de {{ experto_valoracion }}. No hemos influido en dichos valores ni tenemos conocimiento de factores que hayan
+      podido sesgar su objetividad.
+    </p>
+    {% endif %}
 
     <p class="indent">
       Se adjuntan en el Anexo {{ anexo_proyecciones }} de esta carta, las proyecciones de los flujos de efectivo futuros esperados
-      elaboradas por la Dirección, junto con el análisis de sensibilidad, que soportan la recuperabilidad de cualquier deterioro
-      reconocido en las cuentas anuales.
+      (en su caso, de la unidad generadora de efectivo a la que pertenece el (los) elemento(s) de inmovilizado) considerados en dicho
+      analisis, asi como las principales hipotesis utilizadas tanto para la determinacion de los flujos como para el calculo de su
+      valor actual al {{ Fecha_cierre }}.
     </p>
 
     <p class="indent">
-      La Entidad ha revisado todos los activos y pasivos financieros al {{Fecha_cierre}}, de tal forma que los mismos han sido
-      identificados y contabilizados en las cuentas anuales de acuerdo con el marco normativo de información financiera aplicable a
-      la Entidad en España.
+      La Entidad ha revisado todos los activos y pasivos financieros al {{ Fecha_cierre }}, de tal forma que los mismos han sido
+      identificados, clasificados, contabilizados y valorados conforme a lo establecido en la normativa contable que le es de
+      aplicacion a la Entidad.
     </p>
 
     <p class="indent">
-      La Entidad no tenía, ni tiene, operaciones con instituciones financieras que supongan una restricción a la libre disposición de
-      saldos en tesorería y activos financieros, ni otras restricciones que pudieran afectar a la capacidad de la Entidad para realizar
-      pagos.
+      La Entidad no tenia, ni tiene, operaciones con instituciones financieras que supongan una restriccion a la libre disposicion de
+      saldos en efectivo u otros activos o pasivos financieros, salvo aquellas que figuran en la memoria.
     </p>
 
     <p class="indent">
-      En relación con la determinación del valor razonable y desgloses relacionados relativos a determinados activos, pasivos y
+      En relacion con la determinacion del valor razonable y desgloses relacionados relativos a determinados activos, pasivos y
       componentes de patrimonio, les confirmamos que:
     </p>
 
     <p class="indent2">
-      a.	Les hemos facilitado todos los contratos de productos derivados suscritos por la Entidad negociados en mercados organizados o
-      no organizados, así como toda la documentación necesaria relativa al cálculo del valor razonable de dichos derivados.
+      a. Les hemos facilitado todos los contratos de productos derivados suscritos por la Entidad negociados en mercados organizados o
+      no (p.e. opciones y futuros sobre mercancias o valores, compraventas a plazo de divisas, swaps de tipos de interes, etc.).
+      Asimismo, se ha incluido en la memoria de las cuentas anuales toda la informacion de estos instrumentos requerida por la normativa vigente.
     </p>
 
     <p class="indent2">
-      b.	Los métodos de valoración, incluidas las asunciones relacionadas, utilizados en la determinación del valor razonable son
-      apropiados y consistentes con el marco normativo de información financiera aplicable a la Entidad en España.
+      b. Los metodos de valoracion, incluidas las asunciones relacionadas, utilizados en la determinacion del valor razonable son
+      apropiados y han sido aplicados consistentemente.
     </p>
 
     <p class="indent2">
-      c. 	Los desgloses relativos al valor razonable son íntegros y adecuados de acuerdo con el marco normativo de información financiera
-      aplicable a la Entidad en España.
+      c. Los desgloses relativos al valor razonable son integros y adecuados de acuerdo con el marco normativo de informacion financiera
+      aplicable a la Entidad.
     </p>
 
     <p class="indent2">
-      d. No se han producido hechos posteriores al {{Fecha_cierre}}que requieran ajustes en la determinación del valor razonable o en los
-      desgloses relacionados.
+      d. No se han producido hechos posteriores al {{ Fecha_cierre }} que requieran ajustes en la determinacion del valor razonable o en los
+      desgloses incluidos al respecto en las cuentas anuales.
     </p>
 
-    <p class="indent">{% if  A_coste == 'sí' %}</p>
-
+    {% if A_coste == 'si' or A_coste == true %}
     <p class="indent">
-      En relación con (describir el activo) que según el marco normativo de información financiera aplicable a la Entidad debiera figurar
-      contabilizado a coste o amortizado, y dado que la Entidad utiliza el valor razonable para su reconocimiento inicial y posterior, les
-      confirmamos que el valor razonable se ha estimado con métodos adecuados y que las asunciones realizadas son razonables.
+      En relacion con (describir el activo) que segun el marco normativo de informacion financiera aplicable a la Entidad debiera figurar
+      valorado en las cuentas anuales a su valor razonable, les manifestamos que figura registrado en las mismas a coste dada la
+      imposibilidad a la fecha de formulacion de las cuentas anuales de determinar de forma fiable su valor razonable, como consecuencia
+      de (explicar motivos).
     </p>
+    {% endif %}
 
-    <p class="indent">{% endif %}</p>
-
-    <p class="indent">En relación con los impuestos les manifestamos que:</p>
+    <p class="indent">En relacion con los impuestos les manifestamos que:</p>
 
     <p class="indent2">
-      a. 	Se ha realizado provisión adecuada de los pasivos de naturaleza fiscal, tanto de ámbito local como nacional e internacional.
-      Por otro lado, se ha revelado adecuadamente en la memoria las contingencias fiscales.
-    </p>
-
-    <p class="indent2">
-      b. 	Les hemos facilitado todas las opiniones fiscales emitidas por expertos independientes para soportar las posiciones fiscales
-      significativas adoptadas en las cuentas anuales. No se han producido hechos posteriores al cierre que requieran ajustes en la
-      determinación de los impuestos o en los desgloses relacionados.
-    </p>
-
-    <p class="indent2">{% if activo_impuesto == 'sí' %}</p>
-
-    <p class="indent2">
-      Los activos por impuestos diferidos se reconocen en la medida en que existan ganancias fiscales futuras probables que permitan su
-      aplicación. Las estimaciones realizadas por la Dirección para determinar las ganancias fiscales futuras son razonables y se han
-      considerado las limitaciones y restricciones aplicables.
-    </p>
-
-    <p class="indent2">{% endif %}</p>
-
-    <p class="indent2">
-      d. 	Las estrategias fiscales consideradas en la evaluación de la recuperación de los activos por impuestos diferidos son prudentes
-      y factibles. Se han revelado adecuadamente en la memoria.
+      a. Se ha realizado provision adecuada de los pasivos de naturaleza fiscal, tanto de ambito local como nacional e internacional.
+      Por otra parte, no esperamos que al inspeccionarse los ejercicios abiertos, el importe de las eventuales liquidaciones adicionales
+      exceda sustancialmente de las provisiones existentes destinadas a tal fin en las cuentas anuales.
     </p>
 
     <p class="indent2">
-      e.	Les hemos facilitado toda la documentación justificativa de la que disponemos de que los métodos empleados para determinar los
-      activos por impuestos diferidos son apropiados y que las asunciones realizadas son razonables.
+      b. Les hemos facilitado todas las opiniones fiscales emitidas por expertos independientes para soportar las posiciones fiscales
+      sujetas a interpretacion.
+    </p>
+
+    {% if activo_impuesto == 'si' or activo_impuesto == true %}
+    <p class="indent2">
+      Los activos por impuestos diferidos se reconocen en la medida en que existan ganancias fiscales futuras probables que permitan
+      su compensacion. Segun nuestro plan de negocio, la recuperacion comenzara en {{ ejercicio_recuperacion_inicio }} y se completara
+      antes de {{ ejercicio_recuperacion_fin }}.
+    </p>
+    {% endif %}
+
+    <p class="indent2">
+      d. Las estrategias fiscales consideradas en la evaluacion de la recuperacion de los activos por impuestos diferidos son prudentes,
+      razonables y van a ser implantadas.
+    </p>
+
+    <p class="indent2">
+      e. Les hemos facilitado toda la documentacion justificativa de la que disponemos de que los metodos empleados para determinar los
+      precios de transferencia aplicados a las operaciones con partes vinculadas son adecuados.
     </p>
 
     <p class="indent">
-      No existen operaciones realizadas en paraísos fiscales o con entidades residentes en paraísos fiscales.
-      {% if operacion_fiscal == 'sí' %} {{operacion_fiscal_detalle}} {% endif %}
+      No existen operaciones realizadas en paraisos fiscales o con entidades residentes en paraisos fiscales.
+      {% if operacion_fiscal == 'si' or operacion_fiscal == true %} Las operaciones realizadas han sido: {{ detalle_operacion_fiscal }}.{% endif %}
     </p>
 
     <p class="indent">
       La Entidad no tiene compromisos por pensiones o prestaciones laborales similares de los que puedan derivarse obligaciones futuras
-      significativas que no se encuentren registradas o reveladas en las cuentas anuales.
+      adicionales a los indicados en las cuentas anuales.
+      {% if compromiso == 'si' or compromiso == true %} Al respecto, les hemos facilitado toda la informacion justificativa de la que
+      disponemos en relacion a la clasificacion de dichos compromisos como compromisos en regimen de aportacion definida o en regimen de
+      prestacion definida.{% endif %}
     </p>
 
     <p class="indent">
       La Entidad ha llevado a cabo todas sus operaciones con terceros, incluidas las efectuadas con empresas del grupo, multigrupo y
-      asociadas, en condiciones de mercado y debidamente documentadas. Las cuentas anuales revelan adecuadamente dichas operaciones.
+      asociadas y con otras partes vinculadas, de una forma independiente realizando las operaciones en condiciones normales de mercado
+      y en libre competencia.
     </p>
 
     <p class="indent">
-      Las cuentas anuales reflejan toda la información requerida por la Ley de Sociedades de Capital, el marco normativo de información
-      financiera aplicable a la Entidad en España y demás normativa aplicable.
+      Las cuentas anuales reflejan toda la informacion requerida por la Ley de Sociedades de Capital, el marco normativo de informacion
+      financiera conforme a las que se han preparado, las Resoluciones emitidas por el ICAC y demas normativa aplicable, en relacion
+      con lo siguiente:
     </p>
 
     <ul class="indent">
       <li>
-        La información correspondiente a todas las retribuciones, anticipos, créditos, seguros de vida, planes de pensiones, garantías,
-        indemnizaciones, pagos basados en instrumentos de patrimonio, así como cualquier otra obligación o compromiso asumidos en nombre
-        de los administradores, y del personal de alta dirección, ha sido revelada en la memoria de las cuentas anuales.
+        La informacion correspondiente a todas las retribuciones, anticipos, creditos, seguros de vida, planes de pensiones, garantias,
+        indemnizaciones por cese, pagos basados en instrumentos de patrimonio, etc., relativas al personal de alta direccion y los
+        miembros actuales y/o anteriores del organo de administracion.
       </li>
-      <li>Al respecto, les manifestamos que las personas/cargos que nuestra Entidad considera como “alta dirección” son los siguientes:</li>
-      <li>{{lista_alto_directores: “Nombre”: Cargo}}</li>
+      <li>Al respecto, les manifestamos que las personas/cargos que nuestra Entidad considera como "alta direccion" son los siguientes:</li>
+      <li>
+        {% if lista_alto_directores %}
+          {% for director in lista_alto_directores %}
+            {{ director.nombre }}: {{ director.cargo }}{% if not loop.last %}, {% endif %}
+          {% endfor %}
+        {% else %}
+          (Sin especificar)
+        {% endif %}
+      </li>
     </ul>
 
-    <p class="indent">{% if unidad_decision == 'sí' %}</p>
+    {% if unidad_decision == 'si' or unidad_decision == true %}
     <ul class="indent">
       <li>
-        La Entidad pertenece a un conjunto de entidades domiciliadas en España sometidas a la misma unidad de decisión {{nombre_unidad}}
-        con carácter dominante, en los términos recogidos en la normativa aplicable.
+        La Entidad pertenece a un conjunto de entidades domiciliadas en Espana sometidas a la misma unidad de decision {{ nombre_unidad }}
+        cuya entidad de mayor activo es {{ nombre_mayor_sociedad }} que deposita sus cuentas anuales en el Registro Mercantil de {{ localizacion_mer | default('(localidad)', true) }}.
       </li>
     </ul>
-
-    <p class="indent">{% if unidad_decision == 'no' %}</p>
+    {% else %}
     <ul class="indent">
       <li>
-        Les informamos que la Entidad no pertenece a un conjunto de entidades domiciliadas en España sometidas a una misma unidad de
-        decisión con carácter dominante, en los términos recogidos en la normativa aplicable.
+        Les informamos que la Entidad no pertenece a un conjunto de entidades domiciliadas en Espana sometidas a una misma unidad de
+        decision.
       </li>
     </ul>
-    <p class="indent">{% endif %}</p>
+    {% endif %}
 
     <p class="indent">
-      En aquellas circunstancias en que hemos considerado que existe conflicto de interés, las cuentas anuales incluyen la información
-      necesaria sobre los conflictos de interés y la forma en que se gestionan.
+      En aquellas circunstancias en que hemos considerado que existe conflicto de interes, las cuentas anuales incluyen la informacion
+      necesaria en relacion con los administradores de la Sociedad de conformidad con el articulo 229 del Texto Refundido de la Ley de
+      Sociedades de Capital (TRLSC). A los efectos de nuestra evaluacion sobre conflictos de interes les hemos facilitado la siguiente
+      informacion:
     </p>
 
     <p class="indent">
@@ -451,14 +504,16 @@
     </p>
 
     <ul class="indent">
-      <li>Las comunicaciones recibidas de los administradores (dirigidas a los demás administradores y, en su caso, al consejo de administración)</li>
-      <li>los dictámenes legales, internos o externos que pudieran haber solicitado, en relación con la interpretación jurídica del alcance del conflicto de interés</li>
-      <li>la documentación sobre los acuerdos o detalle de las actas de las reuniones del consejo de administración y de la junta general en las que se haya tratado el conflicto de interés).</li>
+      <li>Las comunicaciones recibidas de los administradores (dirigidas a los demas administradores y, en su caso, al consejo de administracion)</li>
+      <li>los dictamenes legales, internos o externos que pudieran haber solicitado, en relacion con la interpretacion juridica del alcance del conflicto de interes</li>
+      <li>la documentacion sobre los acuerdos o detalle de las actas de las reuniones del consejo de administracion y de la junta general en las que se haya tratado el conflicto de interes).</li>
     </ul>
 
+    {% if gestion == 'si' or gestion == true %}
     <p class="indent">
-      {% if gestion == 'sí' %} 12.21 El informe de gestión contiene toda la información requerida por la legislación vigente. {% endif %}
+      12.21 El informe de gestion contiene toda la informacion requerida por la legislacion vigente.
     </p>
+    {% endif %}
 
     <div class="sp-16"></div>
 
@@ -480,15 +535,14 @@ Presidente Ejecutivo; Consejero Delegado; Consejero</div>
 
     <div class="hr"></div>
 
-    <p>{% if incorreccion == 'sí' %}</p>
-
-    <h2>ANEXO 1 a la carta de manifestaciones de XYZ</h2>
+    {% if incorreccion == 'si' or incorreccion == true %}
+    <h2>ANEXO 1 a la carta de manifestaciones de {{ Nombre_Cliente }}</h2>
     <p><strong>Incorrecciones no corregidas por la Entidad</strong></p>
 
     <table>
       <thead>
         <tr>
-          <th>Descripción de la incorrección</th>
+          <th>Descripcion de la incorreccion</th>
           <th>Activo<br/>Aumenta (disminuye)</th>
           <th>Pasivo<br/>(Aumenta) disminuye</th>
           <th>Patrimonio<br/>(Aumenta) disminuye</th>
@@ -520,9 +574,8 @@ Presidente Ejecutivo; Consejero Delegado; Consejero</div>
       </tbody>
     </table>
 
-    <p><strong>Omisiones de información no corregidas por la Entidad</strong></p>
-
-    <p>{% endif %}</p>
+    <p><strong>Omisiones de informacion no corregidas por la Entidad</strong></p>
+    {% endif %}
 
     <div class="hr"></div>
 
