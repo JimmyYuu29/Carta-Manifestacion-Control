@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if mode == 'manager' %}Vista Previa - Aprobacion{% else %}Carta de Manifestacion - {{ data.get('Nombre_Cliente', 'Preview') }}{% endif %}</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --success-color: #16a34a;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --border-color: #e5e7eb;
+            --bg-editable: #fef9c3;
+            --bg-readonly: #f9fafb;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            background: #f3f4f6;
+        }
+
+        /* Top Toolbar */
+        .toolbar-container {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .toolbar {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .toolbar h1 {
+            font-size: 1.25rem;
+            color: #111827;
+            margin: 0;
+        }
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-DRAFT { background: #dbeafe; color: #1d4ed8; }
+        .status-SUBMITTED { background: #dcfce7; color: #166534; }
+        .status-DOWNLOADED { background: #f3f4f6; color: #4b5563; }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+        .btn-success:hover { background: #15803d; }
+        .btn-warning {
+            background: var(--warning-color);
+            color: white;
+        }
+        .btn-warning:hover { background: #b45309; }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-outline {
+            background: white;
+            border: 2px solid var(--border-color);
+            color: #374151;
+        }
+        .btn-outline:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        /* Document Container */
+        .document-container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        /* Info Banner */
+        .info-banner {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .info-banner.warning {
+            background: #fef3c7;
+            border-color: #fcd34d;
+        }
+        .info-banner.manager-mode {
+            background: #ede9fe;
+            border-color: #c4b5fd;
+        }
+        .info-banner svg {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+        }
+        .info-banner p {
+            margin: 0;
+            font-size: 0.9375rem;
+        }
+
+        /* Document Preview Frame */
+        .document-frame {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        .document-header {
+            background: #f9fafb;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .document-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        .document-meta {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        .document-content {
+            padding: 0;
+            min-height: 400px;
+        }
+        .document-content iframe {
+            width: 100%;
+            height: 80vh;
+            border: none;
+        }
+
+        /* Editable Fields Highlight */
+        .edit-fields-panel {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .edit-fields-panel h3 {
+            font-size: 1rem;
+            color: #374151;
+            margin-bottom: 15px;
+        }
+        .field-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        .field-item {
+            padding: 12px;
+            background: var(--bg-editable);
+            border: 2px solid #fbbf24;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .field-item:hover {
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
+        }
+        .field-item.readonly {
+            background: var(--bg-readonly);
+            border-color: var(--border-color);
+            cursor: default;
+        }
+        .field-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #6b7280;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .field-value {
+            font-size: 0.9375rem;
+            color: #111827;
+            word-break: break-word;
+        }
+        .field-value.empty {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        /* Manager Download Section */
+        .download-section {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 25px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .download-section h3 {
+            font-size: 1.125rem;
+            color: #111827;
+            margin-bottom: 10px;
+        }
+        .download-section p {
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+        .countdown-text {
+            margin-top: 15px;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        .countdown-text span {
+            font-weight: 600;
+            color: var(--danger-color);
+        }
+
+        /* Approval Code Section */
+        .approval-section {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+        .approval-section h3 {
+            font-size: 1rem;
+            color: #374151;
+            margin-bottom: 15px;
+        }
+        .supervisor-select {
+            width: 100%;
+            max-width: 300px;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+        .approval-code-display {
+            background: #f0fdf4;
+            border: 2px dashed #22c55e;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 15px;
+        }
+        .approval-code {
+            font-family: monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            color: #166534;
+        }
+        .approval-code-info {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 10px;
+        }
+
+        /* Edit Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: auto;
+        }
+        .modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 { font-size: 1.125rem; }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        .modal-body { padding: 20px; }
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        textarea.form-input {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 2000;
+        }
+        .toast {
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 0.875rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+        }
+        .toast-success { background: #dcfce7; color: #166534; border-left: 4px solid var(--success-color); }
+        .toast-error { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--danger-color); }
+        .toast-warning { background: #fef3c7; color: #92400e; border-left: 4px solid var(--warning-color); }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Manager Link Display */
+        .manager-link-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+        }
+        .manager-link-box label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #0369a1;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .manager-link-box a {
+            display: block;
+            word-break: break-all;
+            color: #0284c7;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+
+        /* Loading */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Print styles */
+        @media print {
+            .toolbar-container, .edit-fields-panel, .approval-section, .download-section, .info-banner { display: none; }
+            .document-container { max-width: 100%; margin: 0; padding: 0; }
+            .document-frame { box-shadow: none; border: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Toolbar -->
+    <div class="toolbar-container">
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <h1>{% if mode == 'manager' %}Vista Previa del Documento{% else %}Carta de Manifestacion{% endif %}</h1>
+                <span class="status-badge status-{{ status }}">{{ status }}</span>
+            </div>
+            <div class="toolbar-right">
+                {% if mode == 'manager' and download_url %}
+                <a href="{{ download_url }}" class="btn btn-success" id="btn-download">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Descargar Word
+                </a>
+                {% elif mode == 'employee' and can_edit %}
+                <button class="btn btn-outline" id="btn-print">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                    </svg>
+                    Imprimir
+                </button>
+                <button class="btn btn-primary" id="btn-save" disabled>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                    </svg>
+                    Guardar
+                </button>
+                <button class="btn btn-success" id="btn-submit">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Enviar para Aprobacion
+                </button>
+                {% elif mode == 'employee' and status == 'SUBMITTED' %}
+                <button class="btn btn-primary" id="btn-generate-code">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                    </svg>
+                    Generar Codigo
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="document-container">
+        <!-- Info Banner -->
+        {% if mode == 'manager' %}
+        <div class="info-banner manager-mode">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+            </svg>
+            <div>
+                <p><strong>Vista previa del documento para aprobacion</strong></p>
+                <p style="font-size: 0.875rem; color: #6b7280;">Revise el documento y haga clic en "Descargar Word" para obtener el documento final.</p>
+            </div>
+        </div>
+        {% elif not can_edit %}
+        <div class="info-banner warning">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+            <p>Este documento ha sido enviado y no puede ser editado. Genere un codigo de aprobacion para que el supervisor pueda descargarlo.</p>
+        </div>
+        {% else %}
+        <div class="info-banner">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p>Revise el documento a continuacion. Puede editar los campos marcados en amarillo. Cuando este listo, haga clic en "Enviar para Aprobacion".</p>
+        </div>
+        {% endif %}
+
+        <!-- Document Preview Frame -->
+        <div class="document-frame">
+            <div class="document-header">
+                <span class="document-title">Modelo de Carta de Manifestaciones - {{ client_name or 'Cliente' }}</span>
+                <span class="document-meta">ID: {{ review_id[:8] }}...</span>
+            </div>
+            <div class="document-content" id="document-content">
+                {{ document_html | safe }}
+            </div>
+        </div>
+
+        {% if mode == 'employee' and can_edit %}
+        <!-- Editable Fields Panel -->
+        <div class="edit-fields-panel">
+            <h3>Campos Editables</h3>
+            <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 15px;">Haga clic en un campo para editarlo</p>
+            <div class="field-grid">
+                {% for field_name in editable_fields %}
+                <div class="field-item" data-field="{{ field_name }}" data-type="{% if field_name in ['Fecha_encargo', 'FF_Ejecicio', 'Fecha_cierre'] %}date{% else %}string{% endif %}">
+                    <div class="field-label">{{ field_name.replace('_', ' ') }}</div>
+                    <div class="field-value {% if not data.get(field_name) %}empty{% endif %}" id="field-{{ field_name }}">
+                        {{ data.get(field_name, 'Sin valor') }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if mode == 'employee' and status == 'SUBMITTED' %}
+        <!-- Approval Code Section -->
+        <div class="approval-section">
+            <h3>Generar Codigo de Aprobacion</h3>
+            <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 15px;">Seleccione un supervisor y genere un codigo para que pueda descargar el documento.</p>
+
+            <select class="supervisor-select" id="supervisor-select">
+                <option value="">Seleccione un supervisor...</option>
+            </select>
+
+            <button class="btn btn-primary" id="btn-generate-code-panel">Generar Codigo</button>
+
+            <div class="approval-code-display" id="approval-code-display" style="display: none;">
+                <div class="approval-code" id="approval-code-value"></div>
+                <div class="approval-code-info">
+                    Codigo para: <span id="supervisor-name"></span><br>
+                    Expira en: <span id="code-expiry"></span>
+                </div>
+            </div>
+
+            <div class="manager-link-box" id="manager-link-box">
+                <label>Enlace para el Supervisor</label>
+                <a href="/manager/reviews/{{ review_id }}" target="_blank" id="manager-link">
+                    /manager/reviews/{{ review_id }}
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if mode == 'manager' and download_url %}
+        <!-- Download Section for Manager -->
+        <div class="download-section">
+            <h3>Documento Listo para Descarga</h3>
+            <p>Revise el documento arriba y haga clic en el boton para descargar la version Word.</p>
+            <a href="{{ download_url }}" class="btn btn-success btn-lg">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 24px; height: 24px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Descargar Documento Word
+            </a>
+            <div class="countdown-text">
+                El enlace de descarga expira en <span id="countdown">300</span> segundos
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-title">Editar campo</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-input" id="modal-input">
+                <textarea class="form-input" id="modal-textarea" style="display:none;"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="modal-cancel">Cancelar</button>
+                <button class="btn btn-primary" id="modal-save">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // Configuration
+        const REVIEW_ID = '{{ review_id }}';
+        const CAN_EDIT = {{ 'true' if can_edit else 'false' }};
+        const MODE = '{{ mode }}';
+        const STATUS = '{{ status }}';
+        const EDITABLE_FIELDS = {{ editable_fields | tojson if editable_fields else '[]' }};
+
+        // State
+        let pendingChanges = {};
+        let currentEditField = null;
+        let countdownInterval = null;
+
+        // Toast helper
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        // Update save button state
+        function updateSaveButton() {
+            const btnSave = document.getElementById('btn-save');
+            if (btnSave) {
+                btnSave.disabled = Object.keys(pendingChanges).length === 0;
+            }
+        }
+
+        // Modal functions
+        function openEditModal(fieldElement) {
+            if (!CAN_EDIT) return;
+
+            const field = fieldElement.dataset.field;
+            const type = fieldElement.dataset.type;
+            const fieldValueEl = document.getElementById(`field-${field}`);
+            const currentValue = pendingChanges[field] !== undefined
+                ? pendingChanges[field]
+                : (fieldValueEl ? fieldValueEl.textContent.trim() : '');
+
+            currentEditField = { element: fieldElement, field, type };
+
+            const modal = document.getElementById('edit-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalInput = document.getElementById('modal-input');
+            const modalTextarea = document.getElementById('modal-textarea');
+
+            modalTitle.textContent = `Editar: ${field.replace(/_/g, ' ')}`;
+
+            if (type === 'date') {
+                modalInput.style.display = 'block';
+                modalTextarea.style.display = 'none';
+                modalInput.type = 'date';
+                modalInput.value = currentValue === 'Sin valor' ? '' : currentValue;
+            } else if (field.includes('Lista') || field.includes('detalle')) {
+                modalInput.style.display = 'none';
+                modalTextarea.style.display = 'block';
+                modalTextarea.value = currentValue === 'Sin valor' ? '' : currentValue;
+            } else {
+                modalInput.style.display = 'block';
+                modalTextarea.style.display = 'none';
+                modalInput.type = 'text';
+                modalInput.value = currentValue === 'Sin valor' ? '' : currentValue;
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('edit-modal');
+            modal.classList.remove('active');
+            currentEditField = null;
+        }
+
+        function saveFieldFromModal() {
+            if (!currentEditField) return;
+
+            const { element, field, type } = currentEditField;
+            const modalInput = document.getElementById('modal-input');
+            const modalTextarea = document.getElementById('modal-textarea');
+            const newValue = modalTextarea.style.display !== 'none'
+                ? modalTextarea.value
+                : modalInput.value;
+
+            // Update UI
+            const fieldValueEl = document.getElementById(`field-${field}`);
+            if (fieldValueEl) {
+                fieldValueEl.textContent = newValue || 'Sin valor';
+                fieldValueEl.classList.toggle('empty', !newValue);
+            }
+
+            // Track change
+            pendingChanges[field] = newValue;
+            updateSaveButton();
+
+            closeEditModal();
+            showToast(`Campo "${field.replace(/_/g, ' ')}" actualizado`, 'success');
+        }
+
+        // Save all pending changes
+        async function saveChanges() {
+            if (Object.keys(pendingChanges).length === 0) return;
+
+            const btnSave = document.getElementById('btn-save');
+            if (btnSave) {
+                btnSave.disabled = true;
+                btnSave.innerHTML = '<span class="loading-spinner"></span> Guardando...';
+            }
+
+            try {
+                const response = await fetch(`/reviews/${REVIEW_ID}/data`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: pendingChanges })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    pendingChanges = {};
+                    updateSaveButton();
+                    showToast('Cambios guardados correctamente', 'success');
+
+                    // Reload page to refresh document preview
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.errors?.[0]?.message || 'Error al guardar', 'error');
+                }
+            } catch (error) {
+                showToast('Error de conexion', 'error');
+            } finally {
+                if (btnSave) {
+                    btnSave.disabled = Object.keys(pendingChanges).length === 0;
+                    btnSave.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg> Guardar';
+                }
+            }
+        }
+
+        // Submit review
+        async function submitReview() {
+            if (!confirm('Una vez enviado, el documento no podra ser editado. Continuar?')) {
+                return;
+            }
+
+            // Save pending changes first
+            if (Object.keys(pendingChanges).length > 0) {
+                await saveChanges();
+            }
+
+            const btnSubmit = document.getElementById('btn-submit');
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = '<span class="loading-spinner"></span> Enviando...';
+            }
+
+            try {
+                const response = await fetch(`/reviews/${REVIEW_ID}/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showToast('Documento enviado correctamente', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(result.detail || 'Error al enviar', 'error');
+                }
+            } catch (error) {
+                showToast('Error de conexion', 'error');
+            } finally {
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Enviar para Aprobacion';
+                }
+            }
+        }
+
+        // Load supervisors
+        async function loadSupervisors() {
+            const select = document.getElementById('supervisor-select');
+            if (!select) return;
+
+            try {
+                const response = await fetch('/manager/supervisors');
+                if (response.ok) {
+                    const data = await response.json();
+                    data.supervisors.forEach(sup => {
+                        const option = document.createElement('option');
+                        option.value = sup.id;
+                        option.textContent = `${sup.name} (${sup.email})`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading supervisors:', error);
+            }
+        }
+
+        // Generate approval code
+        async function generateApprovalCode() {
+            const select = document.getElementById('supervisor-select');
+            const supervisorId = select?.value;
+
+            if (!supervisorId) {
+                showToast('Por favor seleccione un supervisor', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/manager/approval-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        review_id: REVIEW_ID,
+                        supervisor_id: supervisorId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const display = document.getElementById('approval-code-display');
+                    const codeValue = document.getElementById('approval-code-value');
+                    const supervisorName = document.getElementById('supervisor-name');
+                    const codeExpiry = document.getElementById('code-expiry');
+
+                    codeValue.textContent = result.approval_code;
+                    supervisorName.textContent = result.supervisor_name;
+                    codeExpiry.textContent = new Date(result.expires_at).toLocaleString('es-ES');
+                    display.style.display = 'block';
+
+                    showToast('Codigo generado correctamente', 'success');
+                } else {
+                    showToast(result.error || 'Error al generar codigo', 'error');
+                }
+            } catch (error) {
+                showToast('Error de conexion', 'error');
+            }
+        }
+
+        // Countdown for manager mode
+        function startCountdown(seconds) {
+            const countdownEl = document.getElementById('countdown');
+            if (!countdownEl) return;
+
+            let remaining = seconds;
+            countdownEl.textContent = remaining;
+
+            countdownInterval = setInterval(() => {
+                remaining--;
+                countdownEl.textContent = remaining;
+
+                if (remaining <= 0) {
+                    clearInterval(countdownInterval);
+                    alert('El enlace de descarga ha expirado. Recargue la pagina.');
+                    location.reload();
+                }
+            }, 1000);
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load supervisors if in employee mode with SUBMITTED status
+            if (MODE === 'employee' && STATUS === 'SUBMITTED') {
+                loadSupervisors();
+            }
+
+            // Start countdown in manager mode
+            if (MODE === 'manager' && document.getElementById('countdown')) {
+                startCountdown(300);
+            }
+
+            // Editable fields click
+            document.querySelectorAll('.field-item:not(.readonly)').forEach(el => {
+                el.addEventListener('click', () => openEditModal(el));
+            });
+
+            // Modal controls
+            const modalSave = document.getElementById('modal-save');
+            const modalCancel = document.getElementById('modal-cancel');
+            const modalClose = document.getElementById('modal-close');
+            const modal = document.getElementById('edit-modal');
+
+            if (modalSave) modalSave.addEventListener('click', saveFieldFromModal);
+            if (modalCancel) modalCancel.addEventListener('click', closeEditModal);
+            if (modalClose) modalClose.addEventListener('click', closeEditModal);
+
+            // Close modal on backdrop click
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) closeEditModal();
+                });
+            }
+
+            // Close modal on Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeEditModal();
+            });
+
+            // Buttons
+            const btnSave = document.getElementById('btn-save');
+            const btnSubmit = document.getElementById('btn-submit');
+            const btnPrint = document.getElementById('btn-print');
+            const btnGenerateCode = document.getElementById('btn-generate-code');
+            const btnGenerateCodePanel = document.getElementById('btn-generate-code-panel');
+
+            if (btnSave) btnSave.addEventListener('click', saveChanges);
+            if (btnSubmit) btnSubmit.addEventListener('click', submitReview);
+            if (btnPrint) btnPrint.addEventListener('click', () => window.print());
+            if (btnGenerateCode) btnGenerateCode.addEventListener('click', generateApprovalCode);
+            if (btnGenerateCodePanel) btnGenerateCodePanel.addEventListener('click', generateApprovalCode);
+        });
+    </script>
+</body>
+</html>
