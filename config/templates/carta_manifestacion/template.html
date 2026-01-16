@@ -15,7 +15,8 @@
     .hr { border-top: 1px solid #e5e7eb; margin: 22px 0; }
 
     h1 { font-size: 18px; margin: 0 0 8px; letter-spacing: .4px; }
-    h2 { font-size: 14px; margin: 20px 0 8px; text-transform: uppercase; letter-spacing: .6px; }
+    h2 { font-size: 14px; margin: 20px 0 8px; font-style: italic; font-weight: normal; }
+    h2.anexo-title { font-style: normal; font-weight: 700; text-transform: none; }
     p { margin: 10px 0; }
     .indent { margin-left: 24px; }
     .indent2 { margin-left: 48px; }
@@ -65,8 +66,19 @@
 
     /* Tables */
     table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; }
-    th, td { border: 1px solid #e5e7eb; padding: 10px 10px; vertical-align: top; }
-    th { background: #f9fafb; text-align: left; font-weight: 600; }
+    th, td { border: 1px solid #000; padding: 8px 10px; vertical-align: top; }
+    th { background: #f9fafb; text-align: center; font-weight: 600; font-size: 12px; }
+    td { font-size: 13px; }
+    .table-anexo th { font-size: 11px; line-height: 1.3; }
+    .table-anexo td:not(:first-child) { text-align: center; }
+    .table-anexo tr:last-child td { font-weight: 600; }
+
+    /* Text formatting - preserving Word styles */
+    .text-red { color: #FF0000; }
+    .text-bold { font-weight: 700; }
+    .text-italic { font-style: italic; }
+    .text-underline { text-decoration: underline; }
+    .text-highlight { background-color: #FFFF00; }
 
     /* Signature area */
     .sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 26px; }
@@ -536,33 +548,43 @@ Presidente Ejecutivo; Consejero Delegado; Consejero</div>
     <div class="hr"></div>
 
     {% if incorreccion == 'si' or incorreccion == true %}
-    <h2>ANEXO 1 a la carta de manifestaciones de {{ Nombre_Cliente }}</h2>
-    <p><strong>Incorrecciones no corregidas por la Entidad</strong></p>
+    <h2 class="anexo-title">ANEXO <span class="text-underline">1</span> a la carta de manifestaciones de <span class="text-underline">{{ Nombre_Cliente }}</span></h2>
+    <ul>
+      <li><strong>Incorrecciones no corregidas por la Entidad</strong></li>
+    </ul>
 
-    <table>
+    <table class="table-anexo">
       <thead>
         <tr>
-          <th>Descripcion de la incorreccion</th>
-          <th>Activo<br/>Aumenta (disminuye)</th>
-          <th>Pasivo<br/>(Aumenta) disminuye</th>
-          <th>Patrimonio<br/>(Aumenta) disminuye</th>
-          <th>Resultado<br/>Aumenta (disminuye)</th>
+          <th style="width: 35%;">Descripción de la incorrección</th>
+          <th style="width: 16%;">Activo<br/>Aumenta<br/>(disminuye)</th>
+          <th style="width: 16%;">Pasivo<br/>(Aumenta)<br/>disminuye</th>
+          <th style="width: 16%;">Patrimonio<br/>(Aumenta)<br/>disminuye</th>
+          <th style="width: 16%;">Resultado<br/>Aumenta<br/>(disminuye)</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>XXXXXXXXXXXXXX<br/><br/>Debe Clientes<br/>Haber Ventas</td>
-          <td>1.000</td>
+          <td>
+            <span class="text-red"><strong>XXXXXXXXXXXXXX</strong></span><br/><br/>
+            <span class="text-red"><strong>Debe </strong>Clientes</span><br/>
+            <span class="text-red"><strong> Haber </strong>Ventas</span>
+          </td>
+          <td class="text-red">1.000</td>
           <td></td>
           <td></td>
-          <td>1.000</td>
+          <td class="text-red">1.000</td>
         </tr>
         <tr>
-          <td>YYYYYYYYYYYYYY<br/><br/>Debe Compras<br/>Haber Proveedores</td>
+          <td>
+            <span class="text-red"><strong>YYYYYYYYYYYYYY</strong></span><br/><br/>
+            <span class="text-red"><strong>Debe </strong>Compras</span><br/>
+            <span class="text-red"><strong> Haber </strong>Proveedores</span>
+          </td>
           <td></td>
-          <td>(2.000)</td>
+          <td class="text-red">(2.000)</td>
           <td></td>
-          <td>(2.000)</td>
+          <td class="text-red">(2.000)</td>
         </tr>
         <tr>
           <td><strong>Total</strong></td>
@@ -574,12 +596,14 @@ Presidente Ejecutivo; Consejero Delegado; Consejero</div>
       </tbody>
     </table>
 
-    <p><strong>Omisiones de informacion no corregidas por la Entidad</strong></p>
+    <ul>
+      <li><strong>Omisiones de información no corregidas por la Entidad</strong></li>
+    </ul>
     {% endif %}
 
     <div class="hr"></div>
 
-    <h2>ANEXO 2 partes vinculadas</h2>
+    <h2 class="anexo-title">ANEXO 2 partes vinculadas</h2>
 
   </div>
 </body>
