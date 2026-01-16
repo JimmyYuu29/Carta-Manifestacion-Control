@@ -5,11 +5,63 @@ Servicio de almacenamiento basado en archivos para revisiones con control de con
 
 import json
 import os
-import fcntl
+import sys
 from pathlib import Path
 from typing import Optional, Dict, List
 from datetime import datetime, timedelta
 import threading
+from contextlib import contextmanager
+
+# Cross-platform file locking
+# Windows uses msvcrt, Unix uses fcntl
+if sys.platform == 'win32':
+    import msvcrt
+
+    @contextmanager
+    def file_lock_exclusive(f):
+        """Exclusive lock for writing on Windows"""
+        try:
+            msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+            yield
+        finally:
+            try:
+                f.seek(0)
+                msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+            except Exception:
+                pass
+
+    @contextmanager
+    def file_lock_shared(f):
+        """Shared lock for reading on Windows (same as exclusive due to msvcrt limitations)"""
+        try:
+            msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+            yield
+        finally:
+            try:
+                f.seek(0)
+                msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+            except Exception:
+                pass
+else:
+    import fcntl
+
+    @contextmanager
+    def file_lock_exclusive(f):
+        """Exclusive lock for writing on Unix"""
+        try:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            yield
+        finally:
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
+    @contextmanager
+    def file_lock_shared(f):
+        """Shared lock for reading on Unix"""
+        try:
+            fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+            yield
+        finally:
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
 from ..models.review import Review, DownloadToken
 
@@ -54,11 +106,8 @@ class ReviewStorage:
 
         # Use file locking for concurrent access
         with open(review_file, 'w') as f:
-            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-            try:
+            with file_lock_exclusive(f):
                 json.dump(review.to_dict(), f, indent=2, ensure_ascii=False)
-            finally:
-                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
     def load(self, review_id: str) -> Optional[Review]:
         """
@@ -71,12 +120,9 @@ class ReviewStorage:
             return None
 
         with open(review_file, 'r') as f:
-            fcntl.flock(f.fileno(), fcntl.LOCK_SH)
-            try:
+            with file_lock_shared(f):
                 data = json.load(f)
                 return Review.from_dict(data)
-            finally:
-                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
     def exists(self, review_id: str) -> bool:
         """Check if review exists"""
@@ -132,14 +178,11 @@ class ReviewStorage:
     def _save_tokens(self) -> None:
         """Save tokens to persistent storage"""
         with open(self._tokens_file, 'w') as f:
-            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-            try:
+            with file_lock_exclusive(f):
                 json.dump(
                     {k: v.to_dict() for k, v in self._tokens.items()},
                     f, indent=2
                 )
-            finally:
-                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
     def create_download_token(self, review_id: str, ttl_seconds: int = 300) -> DownloadToken:
         """

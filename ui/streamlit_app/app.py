@@ -655,32 +655,108 @@ def render_normal_user_interface(plugin, form_renderer, template_path):
         st.write("")  # Spacing
         st.write("")
 
-    # Generate document and approval code
+    # Create review and show preview section
     st.markdown("---")
 
-    if st.button("Generar Documento y Codigo de Aprobacion", type="primary"):
-        if missing_fields:
-            st.error(f"Por favor completa los siguientes campos obligatorios: {', '.join(missing_fields)}")
-        else:
-            with st.spinner("Generando documento y codigo..."):
-                try:
-                    # Combine all data
-                    all_data = {**var_values, **cond_values}
+    # Initialize session state for review
+    if 'current_review_id' not in st.session_state:
+        st.session_state.current_review_id = None
+    if 'preview_mode' not in st.session_state:
+        st.session_state.preview_mode = False
 
-                    # Generate document
-                    result = generate_from_form(
-                        plugin_id=PLUGIN_ID,
-                        form_data=all_data,
-                        list_data={},
-                        output_dir=PROJECT_ROOT / "output",
-                        template_path=template_path
+    # Step 1: Create review and enter preview mode
+    if not st.session_state.preview_mode:
+        if st.button("Continuar a Vista Previa", type="primary"):
+            if missing_fields:
+                st.error(f"Por favor completa los siguientes campos obligatorios: {', '.join(missing_fields)}")
+            else:
+                with st.spinner("Creando revision..."):
+                    try:
+                        # Combine all data
+                        all_data = {**var_values, **cond_values}
+
+                        # Serialize dates for API
+                        serialized_data = serialize_for_export(all_data)
+
+                        # Create review via API
+                        response = requests.post(
+                            f"{API_BASE_URL}/reviews",
+                            json={
+                                "doc_type": PLUGIN_ID,
+                                "initial_data": serialized_data,
+                                "created_by": "employee"
+                            },
+                            timeout=30
+                        )
+
+                        if response.status_code == 200:
+                            result = response.json()
+                            st.session_state.current_review_id = result["review_id"]
+                            st.session_state.preview_mode = True
+                            st.rerun()
+                        else:
+                            st.error(f"Error al crear revision: {response.text}")
+
+                    except requests.exceptions.ConnectionError:
+                        st.error("No se puede conectar con el servidor API. Por favor, asegurese de que el servidor API este ejecutandose en " + API_BASE_URL)
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
+    else:
+        # Step 2: Preview mode - show HTML preview and allow editing
+        review_id = st.session_state.current_review_id
+
+        st.header("Vista Previa del Documento")
+        st.info("Revise el documento y modifique los campos editables (resaltados en amarillo). Cuando este listo, seleccione un supervisor y envie para aprobacion.")
+
+        # Show preview in iframe
+        preview_url = f"{API_BASE_URL}/reviews/{review_id}/preview"
+
+        st.markdown(f"""
+        <iframe src="{preview_url}" width="100%" height="800" style="border: 1px solid #ddd; border-radius: 8px;"></iframe>
+        """, unsafe_allow_html=True)
+
+        # Alternative: Open in new tab button
+        col_preview1, col_preview2 = st.columns(2)
+        with col_preview1:
+            st.markdown(f"""
+            <a href="{preview_url}" target="_blank" style="display: inline-block; padding: 10px 20px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px;">
+                Abrir Vista Previa en Nueva Pestana
+            </a>
+            """, unsafe_allow_html=True)
+
+        with col_preview2:
+            if st.button("Volver a Editar Formulario"):
+                st.session_state.preview_mode = False
+                st.session_state.current_review_id = None
+                st.rerun()
+
+        st.markdown("---")
+
+        # Supervisor selection for final submission
+        st.header("Enviar para Aprobacion")
+        st.warning("Una vez enviado, el documento quedara congelado y no podra ser editado.")
+
+        supervisor_options = {s["id"]: f"{s['name']} ({s['email']})" for s in supervisors}
+        selected_supervisor = st.selectbox(
+            "Seleccionar Supervisor",
+            options=list(supervisor_options.keys()),
+            format_func=lambda x: supervisor_options[x],
+            key="final_supervisor"
+        )
+
+        if st.button("Enviar para Aprobacion del Supervisor", type="primary"):
+            with st.spinner("Enviando para aprobacion..."):
+                try:
+                    # Submit review via API
+                    submit_response = requests.post(
+                        f"{API_BASE_URL}/reviews/{review_id}/submit",
+                        timeout=30
                     )
 
-                    if result.success and result.output_path:
-                        # Store review ID in session for API call
-                        st.session_state.current_review_id = result.trace_id
+                    if submit_response.status_code == 200:
+                        submit_result = submit_response.json()
 
-                        # Generate approval code locally
+                        # Generate approval code
                         import secrets
                         import string
                         approval_code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8))
@@ -699,7 +775,7 @@ def render_normal_user_interface(plugin, form_renderer, template_path):
 
                         existing_codes[approval_code] = {
                             "code": approval_code,
-                            "review_id": result.trace_id,
+                            "review_id": review_id,
                             "supervisor_id": selected_supervisor,
                             "created_at": datetime.utcnow().isoformat(),
                             "expires_at": expires_at.isoformat(),
@@ -710,61 +786,65 @@ def render_normal_user_interface(plugin, form_renderer, template_path):
                         with open(approval_codes_path, 'w', encoding='utf-8') as f:
                             json.dump(existing_codes, f, indent=2, ensure_ascii=False)
 
-                        # Display success
-                        st.success("Documento generado exitosamente!")
+                        # Now generate the Word document
+                        # Fetch the final data from API
+                        data_response = requests.get(f"{API_BASE_URL}/reviews/{review_id}/data", timeout=30)
+                        if data_response.status_code == 200:
+                            final_data = data_response.json()["data"]
 
-                        # Display approval code prominently
-                        st.markdown("### Codigo de Aprobacion")
-                        st.markdown(f"""
-                        <div style="background-color: #d4edda; border: 2px solid #28a745; border-radius: 10px; padding: 20px; text-align: center; margin: 20px 0;">
-                            <h2 style="color: #155724; margin: 0; font-family: monospace; letter-spacing: 0.3em;">{approval_code}</h2>
-                            <p style="color: #155724; margin-top: 10px;">Codigo para: <strong>{supervisor_options[selected_supervisor]}</strong></p>
-                            <p style="color: #666; font-size: 0.9em;">Valido por 72 horas</p>
-                        </div>
-                        """, unsafe_allow_html=True)
+                            # Generate document
+                            result = generate_from_form(
+                                plugin_id=PLUGIN_ID,
+                                form_data=final_data,
+                                list_data={},
+                                output_dir=PROJECT_ROOT / "output",
+                                template_path=template_path
+                            )
 
-                        st.info(f"""
-                        **Instrucciones para el supervisor:**
-                        1. Acceder a la pagina de aprobacion
-                        2. Introducir el codigo: **{approval_code}**
-                        3. Introducir su contrasena personal
-                        4. Revisar y aprobar el documento
-                        5. Descargar el archivo Word
-                        """)
+                            if result.success:
+                                # Display success
+                                st.success("Documento enviado para aprobacion exitosamente!")
 
-                        # Display trace code
-                        st.markdown("### Codigo de Traza")
-                        st.code(result.trace_id, language=None)
-                        st.caption("Este codigo identifica de forma unica este documento generado.")
+                                # Display approval code prominently
+                                st.markdown("### Codigo de Aprobacion")
+                                st.markdown(f"""
+                                <div style="background-color: #d4edda; border: 2px solid #28a745; border-radius: 10px; padding: 20px; text-align: center; margin: 20px 0;">
+                                    <h2 style="color: #155724; margin: 0; font-family: monospace; letter-spacing: 0.3em;">{approval_code}</h2>
+                                    <p style="color: #155724; margin-top: 10px;">Codigo para: <strong>{supervisor_options[selected_supervisor]}</strong></p>
+                                    <p style="color: #666; font-size: 0.9em;">Valido por 72 horas</p>
+                                </div>
+                                """, unsafe_allow_html=True)
 
-                        # Display generation info
-                        st.info(f"Tiempo de generacion: {result.duration_ms}ms")
+                                st.info(f"""
+                                **Instrucciones para el supervisor:**
+                                1. Acceder a la pagina de aprobacion (cambiar a "Usuario Superior" en la barra lateral)
+                                2. Introducir el codigo: **{approval_code}**
+                                3. Introducir su contrasena personal
+                                4. Revisar y aprobar el documento
+                                5. Descargar el archivo Word
+                                """)
 
-                        # Download button for the generated document (optional, for employee preview)
-                        with open(result.output_path, 'rb') as f:
-                            doc_bytes = f.read()
+                                # Display trace code
+                                st.markdown("### Codigo de Traza")
+                                st.code(review_id, language=None)
+                                st.caption("Este codigo identifica de forma unica este documento.")
 
-                        filename = f"Carta_Manifestacion_{var_values['Nombre_Cliente'].replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}_{result.trace_id[:8]}.docx"
-
-                        st.download_button(
-                            label="Descargar Borrador (Solo Vista Previa)",
-                            data=doc_bytes,
-                            file_name=filename,
-                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                            help="Este es un borrador para revision. El documento oficial debe ser aprobado por el supervisor."
-                        )
+                                # Reset for new document
+                                if st.button("Crear Nuevo Documento"):
+                                    st.session_state.preview_mode = False
+                                    st.session_state.current_review_id = None
+                                    st.rerun()
+                            else:
+                                st.error(f"Error al generar documento: {result.error}")
+                        else:
+                            st.error("Error al obtener datos finales")
                     else:
-                        st.error(f"Error al generar la carta: {result.error}")
-                        if result.validation_errors:
-                            st.markdown("### Errores de validacion:")
-                            for err in result.validation_errors:
-                                st.warning(err)
-                        # Also show trace code for failed generations
-                        st.caption(f"Codigo de traza: {result.trace_id}")
+                        st.error(f"Error al enviar: {submit_response.text}")
 
+                except requests.exceptions.ConnectionError:
+                    st.error("No se puede conectar con el servidor API.")
                 except Exception as e:
-                    st.error(f"Error al generar la carta: {str(e)}")
-                    st.exception(e)
+                    st.error(f"Error: {str(e)}")
 
 
 def render_supervisor_interface():
