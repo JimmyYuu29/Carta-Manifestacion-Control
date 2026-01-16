@@ -293,17 +293,21 @@ async def manager_preview(review_id: str, token: str, request: Request):
     if not stored_token or stored_token.review_id != review_id:
         raise HTTPException(status_code=403, detail="Invalid or expired token")
 
-    # Return HTML preview
-    from ..services.render_html import HtmlRenderer
-    renderer = HtmlRenderer()
+    # Build download URL
+    base_url = str(request.base_url).rstrip("/")
+    download_url = f"{base_url}/manager/reviews/{review_id}/download?token={token}"
 
-    html = renderer.render_preview(
+    # Render document preview using template.html
+    html = html_renderer.render_document_preview(
         doc_type=review.doc_type,
         data_json=review.data_json,
-        editable_fields=[],  # Manager view is read-only
         review_id=review_id,
         status=review.status.value,
-        can_edit=False
+        can_edit=False,
+        editable_fields=[],
+        mode="manager",
+        download_url=download_url,
+        token=token
     )
 
     return HTMLResponse(content=html)

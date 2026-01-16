@@ -134,14 +134,15 @@ async def get_preview(review_id: str, request: Request):
     # Get editable fields from schema
     editable_fields = validator.get_editable_fields(review.doc_type)
 
-    # Render HTML preview
-    html = html_renderer.render_preview(
+    # Render document preview using template.html
+    html = html_renderer.render_document_preview(
         doc_type=review.doc_type,
         data_json=review.data_json,
-        editable_fields=editable_fields,
         review_id=review_id,
         status=review.status.value,
-        can_edit=review.can_edit()
+        can_edit=review.can_edit(),
+        editable_fields=editable_fields,
+        mode="employee"
     )
 
     return HTMLResponse(content=html)

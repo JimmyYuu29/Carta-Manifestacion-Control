@@ -13,10 +13,11 @@ B1 MODE: Supports [[BLOCK:key]]...[[/BLOCK]] anchor blocks with:
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from datetime import date, datetime
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader, select_autoescape, BaseLoader
 import sys
 import re
 import json
+import html as html_module
 
 # Add parent modules to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -294,4 +295,90 @@ class HtmlRenderer:
             doc_type=doc_type,
             status=status,
             client_name=client_name
+        )
+
+    def render_document_preview(self, doc_type: str, data_json: Dict[str, Any],
+                                 review_id: str, status: str, can_edit: bool,
+                                 editable_fields: list, mode: str = "employee",
+                                 download_url: str = None, token: str = None) -> str:
+        """
+        Render document preview using the template.html from config/templates
+        Renderizar previsualizacion del documento usando template.html de config/templates
+
+        Args:
+            doc_type: Document type (e.g., "carta_manifestacion")
+            data_json: Data to fill the template
+            review_id: Review ID
+            status: Current review status
+            can_edit: Whether editing is allowed
+            editable_fields: List of editable field names
+            mode: "employee" or "manager"
+            download_url: URL for downloading Word (manager mode)
+            token: Download token (manager mode)
+
+        Returns:
+            Rendered HTML string with document preview
+        """
+        # Load plugin for context building
+        plugin = load_plugin(doc_type)
+        context_builder = ContextBuilder(plugin)
+
+        # Build full context using same logic as Word renderer
+        full_context = context_builder.build_context(data_json)
+        conditionals = context_builder.get_conditional_values(data_json)
+        full_context.update(conditionals)
+
+        # Also add raw data for access
+        full_context.update(data_json)
+
+        # Load template.html from config/templates
+        config_templates_dir = Path(__file__).parent.parent.parent / "config" / "templates"
+        template_file = config_templates_dir / doc_type / "template.html"
+
+        if not template_file.exists():
+            # Fallback to default preview if template doesn't exist
+            return self.render_preview(doc_type, data_json, editable_fields,
+                                        review_id, status, can_edit)
+
+        # Create a separate Jinja2 environment for config templates
+        config_env = Environment(
+            loader=FileSystemLoader(str(config_templates_dir)),
+            autoescape=select_autoescape(['html', 'xml']),
+            trim_blocks=True,
+            lstrip_blocks=True
+        )
+
+        # Register same filters
+        config_env.filters['date_es'] = self._format_date_spanish
+        config_env.filters['currency_eur'] = self._format_currency_eur
+        config_env.filters['bool_sn'] = self._format_bool_sn
+        config_env.filters['default'] = lambda value, default_value='': value if value else default_value
+
+        try:
+            # Render the document template
+            doc_template = config_env.get_template(f"{doc_type}/template.html")
+            document_html = doc_template.render(**full_context)
+        except Exception as e:
+            # If rendering fails, show error
+            document_html = f"<div class='error'>Error rendering template: {html_module.escape(str(e))}</div>"
+
+        # Load the wrapper template for the preview
+        wrapper_template = self.env.get_template("_base/document_preview.html")
+
+        # B1 MODE: Render blocks
+        blocks = self.render_blocks(doc_type, data_json, can_edit)
+
+        return wrapper_template.render(
+            document_html=document_html,
+            review_id=review_id,
+            status=status,
+            can_edit=can_edit,
+            editable_fields=editable_fields,
+            doc_type=doc_type,
+            mode=mode,
+            download_url=download_url,
+            token=token,
+            data=data_json,
+            blocks=blocks,
+            client_name=data_json.get("Nombre_Cliente", "")
         )
