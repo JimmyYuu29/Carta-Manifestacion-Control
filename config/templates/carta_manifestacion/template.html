@@ -1,93 +1,9 @@
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Vista previa — Modelo de carta de manifestaciones</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.45; margin: 0; background: #f6f7f9; }
-    .page { max-width: 900px; margin: 24px auto; background: #fff; padding: 40px 48px; box-shadow: 0 6px 24px rgba(0,0,0,.08); }
-    .muted { color: #667085; }
-    .center { text-align: center; }
-    .sp-24 { height: 24px; }
-    .sp-16 { height: 16px; }
-    .sp-8 { height: 8px; }
-    .hr { border-top: 1px solid #e5e7eb; margin: 22px 0; }
-
-    h1 { font-size: 18px; margin: 0 0 8px; letter-spacing: .4px; }
-    h2 { font-size: 14px; margin: 20px 0 8px; font-style: italic; font-weight: normal; }
-    h2.anexo-title { font-style: normal; font-weight: 700; text-transform: none; }
-    p { margin: 10px 0; }
-    .indent { margin-left: 24px; }
-    .indent2 { margin-left: 48px; }
-    .indent3 { margin-left: 72px; }
-
-    /* Editable BLOCK styling */
-    .doc-block {
-      border: 2px dashed #fbbf24;
-      border-radius: 10px;
-      padding: 14px 14px 10px;
-      background: #fef9c3;
-      margin: 14px 0;
-      position: relative;
-    }
-    .doc-block::before {
-      content: 'BLOQUE EDITABLE';
-      position: absolute;
-      top: -10px;
-      left: 12px;
-      background: #fbbf24;
-      color: #78350f;
-      font-size: 10px;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .doc-block-base { padding: 8px 10px; background: #fff; border: 1px dashed #d0d5dd; border-radius: 8px; }
-    .doc-block-custom { margin-top: 10px; }
-    .doc-block-custom label { display: block; font-size: 12px; color: #475467; margin-bottom: 6px; }
-    .doc-block-custom textarea {
-      width: 100%;
-      min-height: 90px;
-      resize: vertical;
-      padding: 10px 12px;
-      border: 1px solid #d0d5dd;
-      border-radius: 8px;
-      font: inherit;
-      box-sizing: border-box;
-    }
-    .hint { font-size: 12px; color: #667085; margin-top: 6px; }
-
-    /* Lists */
-    ul { margin: 8px 0 8px 24px; padding-left: 18px; }
-    li { margin: 6px 0; }
-
-    /* Tables */
-    table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; }
-    th, td { border: 1px solid #000; padding: 8px 10px; vertical-align: top; }
-    th { background: #f9fafb; text-align: center; font-weight: 600; font-size: 12px; }
-    td { font-size: 13px; }
-    .table-anexo th { font-size: 11px; line-height: 1.3; }
-    .table-anexo td:not(:first-child) { text-align: center; }
-    .table-anexo tr:last-child td { font-weight: 600; }
-
-    /* Text formatting - preserving Word styles */
-    .text-red { color: #FF0000; }
-    .text-bold { font-weight: 700; }
-    .text-italic { font-style: italic; }
-    .text-underline { text-decoration: underline; }
-    .text-highlight { background-color: #FFFF00; }
-
-    /* Signature area */
-    .sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 26px; }
-    .sign-line { margin-top: 28px; border-top: 1px solid #111827; padding-top: 6px; white-space: pre-wrap; }
-  </style>
-</head>
-
-<body>
-  <div class="page">
+{#
+  Carta de Manifestación - Content Template
+  This template is rendered inside document_preview.html wrapper.
+  CSS styles are defined in templates_html/_base/document_preview.html
+#}
+<div class="page">
 
     <!-- Header -->
     <div class="center muted">
@@ -606,5 +522,3 @@ Presidente Ejecutivo; Consejero Delegado; Consejero</div>
     <h2 class="anexo-title">ANEXO 2 partes vinculadas</h2>
 
   </div>
-</body>
-</html>
